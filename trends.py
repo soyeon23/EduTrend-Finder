@@ -41,10 +41,12 @@ def fetch_trend_data(keywords, timeframe='today 3-m', pytrends_instance=None):
     chunk_size = 5
     keyword_chunks = [keywords[i:i + chunk_size] for i in range(0, len(keywords), chunk_size)]
 
-    for chunk in keyword_chunks:
+    for i, chunk in enumerate(keyword_chunks):
         try:
-            # 최소 딜레이 (Rate Limit 방지)
-            time.sleep(random.uniform(0.3, 0.6))
+            # 첫 번째 청크는 딜레이 없이, 이후부터만 최소 딜레이 (Rate Limit 방지)
+            if i > 0:
+                time.sleep(random.uniform(0.3, 0.6))
+                
             pt.build_payload(chunk, cat=0, timeframe=timeframe, geo='KR')
             data = pt.interest_over_time()
             
@@ -134,35 +136,36 @@ def calculate_growth_metrics(df):
     last_4w_idx = max(0, n_rows - 28)
     prev_4w_idx = max(0, n_rows - 56)
         
+    # 모든 컬럼에 대해 한꺼번에 통계량 계산 (벡터화)
+    early_means = early_period.mean()
+    recent_means = recent_period.mean()
+    total_means = df.mean()
+    total_stds = df.std()
+    max_vals = df.max()
+    
+    # 0 비율 계산
+    zero_ratios = (df == 0).sum() / n_rows
+
+    # 최근 및 이전 4주 평균
+    recent_4w_means = df.iloc[last_4w_idx:].mean()
+    prev_4w_means = df.iloc[prev_4w_idx:last_4w_idx].mean() if prev_4w_idx < last_4w_idx else early_means
+
     for keyword in df.columns:
-        # 1. 기본 통계
-        series = df[keyword]
-        # 중복 컬럼으로 인해 DataFrame이 반환되는 경우 처리
-        if isinstance(series, pd.DataFrame):
-            series = series.iloc[:, 0]
-
-        early_series = early_period[keyword]
-        recent_series = recent_period[keyword]
-        if isinstance(early_series, pd.DataFrame):
-            early_series = early_series.iloc[:, 0]
-        if isinstance(recent_series, pd.DataFrame):
-            recent_series = recent_series.iloc[:, 0]
-
-        early_mean = float(early_series.mean())
-        recent_mean = float(recent_series.mean())
-        total_mean = float(series.mean())
-        std_dev = float(series.std())
-        max_val = float(series.max())
+        # 1. 기본 통계 (미리 계산된 값 사용)
+        early_mean = float(early_means.get(keyword, 0))
+        recent_mean = float(recent_means.get(keyword, 0))
+        total_mean = float(total_means.get(keyword, 0))
+        std_dev = float(total_stds.get(keyword, 0))
+        max_val = float(max_vals.get(keyword, 0))
+        zero_ratio = float(zero_ratios.get(keyword, 0))
+        recent_4w_mean = float(recent_4w_means.get(keyword, 0))
+        prev_4w_mean = float(prev_4w_means.get(keyword, 0))
 
         # NaN 처리
-        if pd.isna(early_mean):
-            early_mean = 0.0
-        if pd.isna(recent_mean):
-            recent_mean = 0.0
-        if pd.isna(total_mean):
-            total_mean = 0.0
-        if pd.isna(std_dev):
-            std_dev = 0.0
+        early_mean = 0.0 if pd.isna(early_mean) else early_mean
+        recent_mean = 0.0 if pd.isna(recent_mean) else recent_mean
+        total_mean = 0.0 if pd.isna(total_mean) else total_mean
+        std_dev = 0.0 if pd.isna(std_dev) else std_dev
 
         # 2. 성장률 계산 (기존 로직 유지 + 보완)
         if early_mean < 1.0:
@@ -175,21 +178,17 @@ def calculate_growth_metrics(df):
             
         # 3. 상세 진단 지표 계산
         
-        # A) 데이터 부족 여부 (0이 30% 이상이면 부족으로 간주)
-        zero_ratio = (series == 0).sum() / n_rows
+        # A) 데이터 부족 여부
         is_insufficient = zero_ratio > 0.3
         
         # B) 변동성 (변동계수 CV = std / mean)
         cv = std_dev / total_mean if total_mean > 0 else 0
         volatility_label = "높음" if cv > 0.5 else ("보통" if cv > 0.2 else "낮음")
         
-        # C) 스파이크 여부 (최대값이 평균+2std 보다 크거나, 최근 평균의 2.5배 이상)
+        # C) 스파이크 여부
         is_spike = (max_val > total_mean + 2 * std_dev) or (max_val > 2.5 * recent_mean)
         
-        # D) 최근 추세 (최근 4주 vs 직전 4주)
-        recent_4w_mean = series.iloc[last_4w_idx:].mean()
-        prev_4w_mean = series.iloc[prev_4w_idx:last_4w_idx].mean() if prev_4w_idx < last_4w_idx else early_mean
-        
+        # D) 최근 추세
         is_rising_short_term = recent_4w_mean > prev_4w_mean * 1.1 # 10% 이상 상승
         
         # 4. 최종 진단 라벨링 (Heuristics)
@@ -234,6 +233,7 @@ def calculate_growth_metrics(df):
         
         # Action Logic
         action_label = "이번 분기 기획 제외" # Default
+        insight_risk = "특이 신호 없음. 정기적인 모니터링만 수행." # Default
         if diagnosis_type == "✅ 지속 상승":
             action_label = "🚀 신규 기획 검토"
             insight_risk = "수요 검증됨. 차별화된 심화 주제 발굴 필요."
@@ -310,10 +310,12 @@ def fetch_youtube_trend_data(keywords, timeframe='today 3-m', pytrends_instance=
     chunk_size = 5
     keyword_chunks = [keywords[i:i + chunk_size] for i in range(0, len(keywords), chunk_size)]
 
-    for chunk in keyword_chunks:
+    for i, chunk in enumerate(keyword_chunks):
         try:
-            # 최소 딜레이 (Rate Limit 방지)
-            time.sleep(random.uniform(0.3, 0.6))
+            # 첫 번째 청크는 딜레이 없이, 이후부터만 최소 딜레이 (Rate Limit 방지)
+            if i > 0:
+                time.sleep(random.uniform(0.3, 0.6))
+                
             pt.build_payload(chunk, cat=0, timeframe=timeframe, geo='KR', gprop='youtube')
             data = pt.interest_over_time()
 
@@ -356,9 +358,11 @@ def fetch_multi_signal_data(keywords, timeframe='today 3-m'):
         pt = create_pytrends()
         return fetch_youtube_trend_data(keywords, timeframe, pytrends_instance=pt)
 
-    # 병렬 실행
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    # 병렬 실행 (최대 4개의 스레드 사용하여 청크 단위 병렬화 가능성 열어둠)
+    with ThreadPoolExecutor(max_workers=4) as executor:
         web_future = executor.submit(fetch_web)
+        # YouTube는 약간의 시차를 두고 시작하여 구글 서버의 요청 밀집 방지
+        time.sleep(0.1)
         youtube_future = executor.submit(fetch_youtube)
 
         results['web'] = web_future.result()

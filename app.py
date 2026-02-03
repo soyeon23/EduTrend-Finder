@@ -1846,7 +1846,7 @@ def page_dashboard():
     st.session_state.selected_period = period
 
     # Load Data (Web + YouTube 병렬 로딩)
-    with st.spinner("데이터 로드 중..."):
+    with st.spinner("🔍 40개 이상의 교육 키워드 트렌드를 정밀하게 분석 중입니다... (약 5~10초 소요)"):
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
         # 데이터 업데이트 시점 기록
         st.session_state.last_data_update = datetime.now()
