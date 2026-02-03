@@ -1,4 +1,4 @@
 [server]
-headless = false
-address = "localhost"
-port = 8505
+headless = true
+enableCORS = false
+enableXsrfProtection = false
