@@ -1,4 +1,12 @@
 import streamlit as st
+
+st.set_page_config(
+    page_title="EduTrend Finder",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
 from trends import (
     fetch_trend_data, calculate_growth_metrics, get_mock_data, fetch_related_queries,
     fetch_youtube_trend_data, get_mock_youtube_data, analyze_cross_signals, DATA_LIMITATIONS,
@@ -6,16 +14,6 @@ from trends import (
 )
 from keyword_list import KEYWORDS
 import random
-
-# --------------------------------------------------------------------------
-# 1. PAGE CONFIG & STYLES
-# --------------------------------------------------------------------------
-st.set_page_config(
-    page_title="EduTrend Finder",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
 
 # Clean, Minimal SaaS Style CSS
 st.markdown("""
