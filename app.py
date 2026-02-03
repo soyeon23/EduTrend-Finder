@@ -2734,30 +2734,19 @@ def page_simulator():
         selected = list(st.session_state.sim_selected)
         selected_data = [c for c in candidates if c['키워드'] in selected]
 
-        # Generate Report
-        st.markdown('<div class="sim-report">', unsafe_allow_html=True)
-        st.markdown('<div class="sim-report-title">선택 결과 요약</div>', unsafe_allow_html=True)
+        # 데이터 준비
+        avg_growth = sum(d['성장률(%)'] for d in selected_data) / len(selected_data) if selected_data else 0
 
-        # Selected keywords summary
-        st.markdown('<div class="sim-report-section">', unsafe_allow_html=True)
-        st.markdown('<div class="sim-report-section-title">선택한 키워드</div>', unsafe_allow_html=True)
-
+        # 선택한 키워드 HTML 생성
+        keywords_html = ""
         for data in selected_data:
             kw = data['키워드']
             growth = data['성장률(%)']
             g_sign = "+" if growth > 0 else ""
-            st.markdown(f"• **{kw}** — 성장률 {g_sign}{growth:.1f}%")
+            keywords_html += f"<div style='margin-bottom: 0.5rem;'>• <strong>{kw}</strong> — 성장률 {g_sign}{growth:.1f}%</div>"
 
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        # Judgment rationale
-        st.markdown('<div class="sim-report-section">', unsafe_allow_html=True)
-        st.markdown('<div class="sim-report-section-title">판단 근거</div>', unsafe_allow_html=True)
-
-        avg_growth = sum(d['성장률(%)'] for d in selected_data) / len(selected_data)
-
+        # 판단 근거 생성
         rationale_parts = []
-
         if avg_growth > 20:
             rationale_parts.append(f"선택한 키워드는 평균 {avg_growth:.1f}%의 높은 성장률을 보이고 있어 시장 관심이 급증하는 주제입니다.")
         elif avg_growth > 10:
@@ -2767,7 +2756,6 @@ def page_simulator():
         else:
             rationale_parts.append(f"선택한 키워드는 현재 성장률이 {avg_growth:.1f}%로 정체 또는 하락 추세입니다.")
 
-        # Check for education-related terms
         edu_terms = ['교육', '강의', '입문', '기초', '자격증', '튜토리얼']
         has_edu_context = any(any(term in str(d['키워드']) for term in edu_terms) for d in selected_data)
 
@@ -2776,13 +2764,9 @@ def page_simulator():
         else:
             rationale_parts.append("일반 검색 키워드로, 교육 콘텐츠 수요로 직접 연결되는지는 추가 검증이 필요합니다.")
 
-        st.markdown(f'<p class="sim-report-text">{" ".join(rationale_parts)}</p>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        rationale_text = " ".join(rationale_parts)
 
-        # Risk comment
-        st.markdown('<div class="sim-report-risk">', unsafe_allow_html=True)
-        st.markdown('<div class="sim-report-risk-title">리스크 & 고려사항</div>', unsafe_allow_html=True)
-
+        # 리스크 생성
         risks = []
         for data in selected_data:
             if data['변동성'] == '높음':
@@ -2793,10 +2777,29 @@ def page_simulator():
         if not risks:
             risks.append("선택한 키워드는 비교적 안정적인 지표를 보이나, 실제 교육 수요와의 연관성은 별도 검증이 권장됩니다.")
 
-        st.markdown(f'<p class="sim-report-risk-text">{" ".join(risks)}</p>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        risks_text = " ".join(risks)
 
-        st.markdown('</div>', unsafe_allow_html=True)
+        # 전체 리포트 HTML (인라인 스타일로 렌더링 보장)
+        report_html = f"""
+<div style="background: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 2rem; margin-top: 1rem;">
+    <div style="font-size: 1.25rem; font-weight: 700; color: #1a1a1a; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e5e5;">
+        선택 결과 요약
+    </div>
+    <div style="margin-bottom: 1.5rem;">
+        <div style="font-size: 0.9rem; font-weight: 600; color: #6366f1; margin-bottom: 0.5rem;">선택한 키워드</div>
+        {keywords_html}
+    </div>
+    <div style="margin-bottom: 1.5rem;">
+        <div style="font-size: 0.9rem; font-weight: 600; color: #6366f1; margin-bottom: 0.5rem;">판단 근거</div>
+        <p style="font-size: 0.95rem; color: #374151; line-height: 1.7; margin: 0;">{rationale_text}</p>
+    </div>
+    <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+        <div style="font-size: 0.85rem; font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">리스크 & 고려사항</div>
+        <p style="font-size: 0.9rem; color: #78350f; margin: 0; line-height: 1.6;">{risks_text}</p>
+    </div>
+</div>
+"""
+        st.markdown(report_html, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
