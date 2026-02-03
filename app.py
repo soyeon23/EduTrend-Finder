@@ -10,10 +10,14 @@ st.set_page_config(
 from trends import (
     fetch_trend_data, calculate_growth_metrics, get_mock_data, fetch_related_queries,
     fetch_youtube_trend_data, get_mock_youtube_data, analyze_cross_signals, DATA_LIMITATIONS,
-    fetch_multi_signal_data
+    fetch_multi_signal_data, apply_moving_average, normalize_data, calculate_correlation,
+    generate_strategic_insights
 )
 from keyword_list import KEYWORDS
 import random
+import plotly.graph_objects as go
+from datetime import datetime
+import io
 
 # Clean, Minimal SaaS Style CSS
 st.markdown("""
@@ -927,6 +931,57 @@ if 'sim_candidates' not in st.session_state:
 if 'sim_from_keyword' not in st.session_state:
     st.session_state.sim_from_keyword = None
 
+# Analysis options states
+if 'show_moving_average' not in st.session_state:
+    st.session_state.show_moving_average = True
+if 'apply_normalization' not in st.session_state:
+    st.session_state.apply_normalization = False
+if 'ma_window' not in st.session_state:
+    st.session_state.ma_window = 7
+
+# --------------------------------------------------------------------------
+# SIDEBAR OPTIONS
+# --------------------------------------------------------------------------
+with st.sidebar:
+    st.markdown("### ⚙️ 분석 옵션")
+    st.markdown("---")
+
+    st.markdown("**📈 이동 평균 (Moving Average)**")
+    st.session_state.show_moving_average = st.checkbox(
+        "이동 평균 표시",
+        value=st.session_state.show_moving_average,
+        help="차트에 7일 이동 평균선을 함께 표시합니다"
+    )
+
+    if st.session_state.show_moving_average:
+        st.session_state.ma_window = st.slider(
+            "이동 평균 기간 (일)",
+            min_value=3,
+            max_value=14,
+            value=st.session_state.ma_window,
+            help="이동 평균 계산에 사용할 일수"
+        )
+
+    st.markdown("---")
+
+    st.markdown("**📊 데이터 정규화**")
+    st.session_state.apply_normalization = st.checkbox(
+        "Min-Max 정규화 (0-100)",
+        value=st.session_state.apply_normalization,
+        help="모든 키워드를 0-100 범위로 정규화하여 비교합니다"
+    )
+
+    st.markdown("---")
+
+    st.markdown("**📋 분석 정보**")
+    st.markdown("""
+    <div style="font-size: 0.8rem; color: #64748b; line-height: 1.6;">
+    • <strong>이동 평균</strong>: 단기 변동을 완화하여 추세 파악<br>
+    • <strong>정규화</strong>: 키워드 간 상대적 비교 용이<br>
+    • <strong>상관 계수</strong>: Web-YouTube 간 연관성 측정
+    </div>
+    """, unsafe_allow_html=True)
+
 def navigate_to(page, keyword=None):
     st.session_state.page = page
     if keyword:
@@ -1210,6 +1265,335 @@ def render_service_positioning():
         {DATA_LIMITATIONS['positioning']}
     </div>
     """, unsafe_allow_html=True)
+
+
+def create_trend_chart(df, keyword, color='#6366f1', title=None, show_ma=True, normalize=False):
+    """
+    트렌드 차트를 생성합니다 (원본 + 이동평균 동시 표시 가능).
+
+    Args:
+        df: 원본 데이터프레임
+        keyword: 차트에 표시할 키워드
+        color: 메인 색상
+        title: 차트 제목
+        show_ma: 이동평균 표시 여부
+        normalize: 정규화 적용 여부
+    """
+    if keyword not in df.columns:
+        return None
+
+    # 데이터 준비
+    chart_df = df[[keyword]].copy()
+
+    # 정규화 적용
+    if normalize:
+        chart_df = normalize_data(chart_df)
+
+    fig = go.Figure()
+
+    # 원본 데이터 라인
+    fig.add_trace(go.Scatter(
+        x=chart_df.index,
+        y=chart_df[keyword],
+        mode='lines',
+        name='원본',
+        line=dict(color=color, width=1.5),
+        opacity=0.5 if show_ma else 1.0
+    ))
+
+    # 이동 평균 라인
+    if show_ma and st.session_state.show_moving_average:
+        ma_df = apply_moving_average(chart_df, window=st.session_state.ma_window)
+        fig.add_trace(go.Scatter(
+            x=ma_df.index,
+            y=ma_df[keyword],
+            mode='lines',
+            name=f'{st.session_state.ma_window}일 이동평균',
+            line=dict(color=color, width=2.5)
+        ))
+
+    fig.update_layout(
+        height=280,
+        margin=dict(l=0, r=0, t=30 if title else 10, b=0),
+        xaxis_title="",
+        yaxis_title="관심도 (0-100)" if normalize else "관심도",
+        title=title,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        hovermode='x unified'
+    )
+
+    return fig
+
+
+def generate_report_html(metrics, strategic_insights, cross_signals, period):
+    """
+    HTML 형식의 전략 리포트를 생성합니다.
+    """
+    report_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    summary = strategic_insights['summary']
+    priority_kws = strategic_insights['priority_keywords']
+    market_stages = strategic_insights['market_stages']
+    trend_classifications = strategic_insights['trend_classifications']
+    correlations = strategic_insights['correlations']
+
+    # 시장 단계별 분류
+    stage_groups = {'🌱 도입기': [], '📈 성장기': [], '🏔️ 성숙기': [], '📉 쇠퇴기': [], '🔄 전환기': []}
+    for kw, stage_info in market_stages.items():
+        stage_groups[stage_info['stage']].append(kw)
+
+    # 트렌드 분류
+    sustainable = [kw for kw, tc in trend_classifications.items() if tc['type'] in ['지속 성장', '완만한 성장', '안정적 유지']]
+    temporary = [kw for kw, tc in trend_classifications.items() if tc['type'] in ['일시적 급등', '급등 후 하락']]
+
+    # 상관관계 분류
+    high_corr = [(k, v) for k, v in correlations.items() if v is not None and v > 0.6]
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>EduTrend Finder - Strategic Insight Report</title>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; color: #1a1a1a; line-height: 1.6; padding: 40px; max-width: 1000px; margin: 0 auto; }}
+            .header {{ text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 2px solid #6366f1; }}
+            .header h1 {{ font-size: 2rem; color: #1e1b4b; margin-bottom: 10px; }}
+            .header .subtitle {{ color: #64748b; font-size: 0.9rem; }}
+            .header .date {{ color: #94a3b8; font-size: 0.85rem; margin-top: 5px; }}
+            .section {{ margin-bottom: 30px; }}
+            .section-title {{ font-size: 1.2rem; font-weight: 700; color: #4f46e5; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }}
+            .metrics-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }}
+            .metric-box {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; }}
+            .metric-box .label {{ font-size: 0.8rem; color: #64748b; margin-bottom: 5px; }}
+            .metric-box .value {{ font-size: 1.5rem; font-weight: 700; color: #1e1b4b; }}
+            .metric-box .value.highlight {{ color: #6366f1; }}
+            .priority-item {{ background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 15px; margin-bottom: 10px; }}
+            .priority-item .name {{ font-weight: 700; font-size: 1.1rem; color: #166534; }}
+            .priority-item .reason {{ font-size: 0.85rem; color: #64748b; }}
+            .priority-item .stats {{ display: flex; gap: 20px; margin-top: 10px; font-size: 0.9rem; }}
+            .stage-grid {{ display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }}
+            .stage-box {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; text-align: center; }}
+            .stage-box .count {{ font-size: 1.5rem; font-weight: 700; color: #4f46e5; }}
+            .stage-box .label {{ font-size: 0.8rem; color: #64748b; }}
+            .two-col {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+            .list-box {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }}
+            .list-box h4 {{ font-size: 0.95rem; font-weight: 600; margin-bottom: 10px; }}
+            .list-box ul {{ list-style: none; padding: 0; }}
+            .list-box li {{ padding: 5px 0; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }}
+            .list-box li:last-child {{ border-bottom: none; }}
+            .footer {{ text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #94a3b8; font-size: 0.8rem; }}
+            @media print {{ body {{ padding: 20px; }} .section {{ page-break-inside: avoid; }} }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>📊 EduTrend Finder</h1>
+            <div class="subtitle">Strategic Insight Report</div>
+            <div class="date">분석 기간: {period} | 생성일: {report_date}</div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📋 요약 메트릭</div>
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <div class="label">분석 키워드</div>
+                    <div class="value">{summary['total_keywords']}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="label">성장기 키워드</div>
+                    <div class="value highlight">{summary['growth_stage_count']}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="label">안정 트렌드</div>
+                    <div class="value">{summary['stable_trend_count']}</div>
+                </div>
+                <div class="metric-box">
+                    <div class="label">우선 추천</div>
+                    <div class="value highlight">{summary['priority_count']}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🎯 우선순위 키워드</div>
+            {''.join([f'''
+            <div class="priority-item">
+                <div class="name">{idx+1}. {pk['keyword']}</div>
+                <div class="reason">{pk['reason']}</div>
+                <div class="stats">
+                    <span>🌐 Web: {'+' if pk['web_growth'] > 0 else ''}{pk['web_growth']:.1f}%</span>
+                    <span>▶️ YouTube: {'+' if pk['youtube_growth'] > 0 else ''}{pk['youtube_growth']:.1f}%</span>
+                    <span>신뢰도: {pk['confidence']}%</span>
+                </div>
+            </div>
+            ''' for idx, pk in enumerate(priority_kws[:5])]) if priority_kws else '<p style="color: #64748b;">우선 추천 조건을 만족하는 키워드 없음</p>'}
+        </div>
+
+        <div class="section">
+            <div class="section-title">📊 시장 단계별 분류</div>
+            <div class="stage-grid">
+                <div class="stage-box">
+                    <div class="count">{len(stage_groups['🌱 도입기'])}</div>
+                    <div class="label">🌱 도입기</div>
+                </div>
+                <div class="stage-box">
+                    <div class="count">{len(stage_groups['📈 성장기'])}</div>
+                    <div class="label">📈 성장기</div>
+                </div>
+                <div class="stage-box">
+                    <div class="count">{len(stage_groups['🏔️ 성숙기'])}</div>
+                    <div class="label">🏔️ 성숙기</div>
+                </div>
+                <div class="stage-box">
+                    <div class="count">{len(stage_groups['📉 쇠퇴기'])}</div>
+                    <div class="label">📉 쇠퇴기</div>
+                </div>
+                <div class="stage-box">
+                    <div class="count">{len(stage_groups['🔄 전환기'])}</div>
+                    <div class="label">🔄 전환기</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📈 트렌드 분류</div>
+            <div class="two-col">
+                <div class="list-box">
+                    <h4>✅ 지속 성장 ({len(sustainable)}개)</h4>
+                    <ul>
+                        {''.join([f'<li>{kw}</li>' for kw in sustainable[:7]]) if sustainable else '<li>해당 없음</li>'}
+                        {f'<li style="color: #94a3b8;">... 외 {len(sustainable)-7}개</li>' if len(sustainable) > 7 else ''}
+                    </ul>
+                </div>
+                <div class="list-box">
+                    <h4>⚠️ 일시적 급등 ({len(temporary)}개)</h4>
+                    <ul>
+                        {''.join([f'<li>{kw}</li>' for kw in temporary[:7]]) if temporary else '<li>해당 없음</li>'}
+                        {f'<li style="color: #94a3b8;">... 외 {len(temporary)-7}개</li>' if len(temporary) > 7 else ''}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">🔗 Web-YouTube 높은 상관관계</div>
+            <div class="list-box">
+                <ul>
+                    {''.join([f'<li><strong>{kw}</strong>: {corr:.3f}</li>' for kw, corr in sorted(high_corr, key=lambda x: x[1], reverse=True)[:10]]) if high_corr else '<li>높은 상관관계 키워드 없음</li>'}
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">📋 전체 키워드 분석 결과</div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">키워드</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e2e8f0;">성장률</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #e2e8f0;">관심도</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">진단</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0;">추천액션</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {''.join([f'''
+                    <tr>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">{row['키워드']}</td>
+                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #f1f5f9; color: {'#16a34a' if row['성장률(%)'] > 0 else '#dc2626'};">{'+' if row['성장률(%)'] > 0 else ''}{row['성장률(%)']:.1f}%</td>
+                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #f1f5f9;">{row['최근 관심도']:.0f}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">{row['진단유형']}</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #f1f5f9;">{row['추천액션']}</td>
+                    </tr>
+                    ''' for _, row in metrics.sort_values('성장률(%)', ascending=False).iterrows()])}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>EduTrend Finder | DataSource: Web · YouTube · Google Trends</p>
+            <p>이 데이터는 '정답'이 아닌 '판단을 돕는 신호(Signal)'입니다.</p>
+        </div>
+    </body>
+    </html>
+    """
+    return html_content
+
+
+def create_multi_keyword_chart(df, keywords, title=None, show_ma=True, normalize=False):
+    """
+    여러 키워드를 한 차트에 표시합니다.
+
+    Args:
+        df: 원본 데이터프레임
+        keywords: 표시할 키워드 리스트
+        title: 차트 제목
+        show_ma: 이동평균만 표시할지 여부
+        normalize: 정규화 적용 여부
+    """
+    available = [k for k in keywords if k in df.columns]
+    if not available:
+        return None
+
+    # 데이터 준비
+    chart_df = df[available].copy()
+
+    # 정규화 적용
+    if normalize:
+        chart_df = normalize_data(chart_df)
+
+    fig = go.Figure()
+
+    colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+
+    for idx, keyword in enumerate(available):
+        color = colors[idx % len(colors)]
+
+        if show_ma and st.session_state.show_moving_average:
+            # 이동평균만 표시
+            ma_df = apply_moving_average(chart_df[[keyword]], window=st.session_state.ma_window)
+            fig.add_trace(go.Scatter(
+                x=ma_df.index,
+                y=ma_df[keyword],
+                mode='lines',
+                name=keyword,
+                line=dict(color=color, width=2)
+            ))
+        else:
+            # 원본 표시
+            fig.add_trace(go.Scatter(
+                x=chart_df.index,
+                y=chart_df[keyword],
+                mode='lines',
+                name=keyword,
+                line=dict(color=color, width=1.5)
+            ))
+
+    fig.update_layout(
+        height=350,
+        margin=dict(l=0, r=0, t=30 if title else 10, b=0),
+        xaxis_title="",
+        yaxis_title="관심도 (0-100)" if normalize else "관심도",
+        title=title,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        hovermode='x unified'
+    )
+
+    return fig
 
 
 def render_demo_mode_banner(web_is_mock=False, youtube_is_mock=False):
@@ -1638,26 +2022,55 @@ def page_detail():
     # Charts - Web and YouTube side by side
     st.markdown('<p class="section-title">트렌드</p>', unsafe_allow_html=True)
 
+    # 분석 옵션 상태 표시
+    options_text = []
+    if st.session_state.show_moving_average:
+        options_text.append(f"📈 {st.session_state.ma_window}일 이동평균")
+    if st.session_state.apply_normalization:
+        options_text.append("📊 정규화 적용")
+    if options_text:
+        st.markdown(f"<p style='font-size: 0.85rem; color: #6366f1;'>적용된 옵션: {' · '.join(options_text)}</p>", unsafe_allow_html=True)
+
     chart_col1, chart_col2 = st.columns(2)
 
     with chart_col1:
-        import plotly.express as px
         st.markdown('<h3 class="section-heading"><span class="web-badge">🌐 Web</span> 검색 관심도</h3>', unsafe_allow_html=True)
-        fig_web = px.line(df, y=kw)
-        fig_web.update_layout(height=250, xaxis_title="", yaxis_title="관심도 (0-100)", margin=dict(t=10))
-        fig_web.update_traces(line_color='#2563eb', line_width=2)
-        st.plotly_chart(fig_web, use_container_width=True)
+        fig_web = create_trend_chart(
+            df, kw, color='#2563eb',
+            show_ma=st.session_state.show_moving_average,
+            normalize=st.session_state.apply_normalization
+        )
+        if fig_web:
+            st.plotly_chart(fig_web, use_container_width=True)
 
     with chart_col2:
         st.markdown('<h3 class="section-heading"><span class="youtube-badge">▶️ YouTube</span> 검색 관심도</h3>', unsafe_allow_html=True)
         if kw in youtube_df.columns:
-            import plotly.express as px
-            fig_yt = px.line(youtube_df, y=kw)
-            fig_yt.update_layout(height=250, xaxis_title="", yaxis_title="관심도 (0-100)", margin=dict(t=10))
-            fig_yt.update_traces(line_color='#dc2626', line_width=2)
-            st.plotly_chart(fig_yt, use_container_width=True)
+            fig_yt = create_trend_chart(
+                youtube_df, kw, color='#dc2626',
+                show_ma=st.session_state.show_moving_average,
+                normalize=st.session_state.apply_normalization
+            )
+            if fig_yt:
+                st.plotly_chart(fig_yt, use_container_width=True)
         else:
             st.info("YouTube 데이터 없음")
+
+    # Web-YouTube 상관관계 표시
+    correlations = calculate_correlation(df, youtube_df, [kw])
+    if kw in correlations and correlations[kw] is not None:
+        corr_val = correlations[kw]
+        corr_label = "강한 양의 상관" if corr_val > 0.7 else "보통 양의 상관" if corr_val > 0.4 else "약한 상관" if corr_val > 0.1 else "거의 무관"
+        corr_color = "#16a34a" if corr_val > 0.5 else "#f59e0b" if corr_val > 0.2 else "#64748b"
+        st.markdown(f"""
+        <div class="notice-box" style="display: flex; align-items: center; gap: 1rem;">
+            <div>
+                <strong>Web ↔ YouTube 상관 계수:</strong>
+                <span style="font-size: 1.2rem; font-weight: 700; color: {corr_color}; margin-left: 0.5rem;">{corr_val:.3f}</span>
+                <span style="font-size: 0.85rem; color: #64748b; margin-left: 0.5rem;">({corr_label})</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown('<p class="section-title">연관 키워드</p>', unsafe_allow_html=True)
     related = load_related(kw)
@@ -1726,22 +2139,37 @@ def page_compare():
     selected = st.multiselect("키워드 선택 (최대 5개)", list(metrics['키워드'].unique()), default=default)
 
     if selected:
+        # 분석 옵션 상태 표시
+        options_text = []
+        if st.session_state.show_moving_average:
+            options_text.append(f"📈 {st.session_state.ma_window}일 이동평균")
+        if st.session_state.apply_normalization:
+            options_text.append("📊 정규화 적용")
+        if options_text:
+            st.markdown(f"<p style='font-size: 0.85rem; color: #6366f1;'>적용된 옵션: {' · '.join(options_text)}</p>", unsafe_allow_html=True)
+
         # Data source tabs
         data_source = st.radio("데이터 소스", ["웹 검색", "YouTube 검색", "둘 다 비교"],
                                horizontal=True, label_visibility="collapsed")
 
         if data_source == "웹 검색":
-            import plotly.express as px
-            fig = px.line(df[selected])
-            fig.update_layout(height=350, xaxis_title="", yaxis_title="관심도 (웹)")
-            st.plotly_chart(fig, use_container_width=True)
+            fig = create_multi_keyword_chart(
+                df, selected,
+                show_ma=st.session_state.show_moving_average,
+                normalize=st.session_state.apply_normalization
+            )
+            if fig:
+                st.plotly_chart(fig, use_container_width=True)
         elif data_source == "YouTube 검색":
             available = [k for k in selected if k in youtube_df.columns]
             if available:
-                import plotly.express as px
-                fig = px.line(youtube_df[available])
-                fig.update_layout(height=350, xaxis_title="", yaxis_title="관심도 (YouTube)")
-                st.plotly_chart(fig, use_container_width=True)
+                fig = create_multi_keyword_chart(
+                    youtube_df, available,
+                    show_ma=st.session_state.show_moving_average,
+                    normalize=st.session_state.apply_normalization
+                )
+                if fig:
+                    st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("선택한 키워드의 YouTube 데이터가 없습니다.")
         else:
@@ -1749,20 +2177,47 @@ def page_compare():
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown('<span class="web-badge">🌐 Web</span>', unsafe_allow_html=True)
-                import plotly.express as px
-                fig_web = px.line(df[selected])
-                fig_web.update_layout(height=280, xaxis_title="", yaxis_title="관심도", margin=dict(t=10))
-                st.plotly_chart(fig_web, use_container_width=True)
+                fig_web = create_multi_keyword_chart(
+                    df, selected,
+                    show_ma=st.session_state.show_moving_average,
+                    normalize=st.session_state.apply_normalization
+                )
+                if fig_web:
+                    fig_web.update_layout(height=280)
+                    st.plotly_chart(fig_web, use_container_width=True)
             with c2:
                 st.markdown('<span class="youtube-badge">▶️ YouTube</span>', unsafe_allow_html=True)
                 available = [k for k in selected if k in youtube_df.columns]
                 if available:
-                    import plotly.express as px
-                    fig_yt = px.line(youtube_df[available])
-                    fig_yt.update_layout(height=280, xaxis_title="", yaxis_title="관심도", margin=dict(t=10))
-                    st.plotly_chart(fig_yt, use_container_width=True)
+                    fig_yt = create_multi_keyword_chart(
+                        youtube_df, available,
+                        show_ma=st.session_state.show_moving_average,
+                        normalize=st.session_state.apply_normalization
+                    )
+                    if fig_yt:
+                        fig_yt.update_layout(height=280)
+                        st.plotly_chart(fig_yt, use_container_width=True)
                 else:
                     st.info("YouTube 데이터 없음")
+
+        # 상관계수 테이블 추가
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("**Web ↔ YouTube 상관 계수**")
+        correlations = calculate_correlation(df, youtube_df, selected)
+        corr_data = []
+        for kw in selected:
+            corr_val = correlations.get(kw)
+            if corr_val is not None:
+                corr_label = "강함" if corr_val > 0.7 else "보통" if corr_val > 0.4 else "약함"
+                corr_data.append({'키워드': kw, '상관계수': corr_val, '강도': corr_label})
+            else:
+                corr_data.append({'키워드': kw, '상관계수': None, '강도': '-'})
+
+        import pandas as pd
+        corr_df = pd.DataFrame(corr_data)
+        st.dataframe(corr_df, hide_index=True, use_container_width=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
 
         comp = metrics[metrics['키워드'].isin(selected)]
         st.dataframe(
@@ -1775,12 +2230,12 @@ def page_compare():
 
 def page_report():
     st.markdown('<p class="section-title">리포트</p>', unsafe_allow_html=True)
-    st.markdown('<h3 class="section-heading">트렌드 분석 결과</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">Strategic Insight Report</h3>', unsafe_allow_html=True)
     st.markdown("""
     <p class="section-desc">
         <span class="web-badge">🌐 Web</span>
         <span class="youtube-badge" style="margin-left: 0.5rem;">▶️ YouTube</span>
-        <span style="margin-left: 0.5rem;">데이터 기반 종합 분석</span>
+        <span style="margin-left: 0.5rem;">데이터 기반 전략적 인사이트</span>
     </p>
     """, unsafe_allow_html=True)
 
@@ -1788,12 +2243,190 @@ def page_report():
     period = st.selectbox("기간", list(timeframe_map.keys()), label_visibility="collapsed",
                           index=list(timeframe_map.keys()).index(st.session_state.get('selected_period', '3개월')))
 
-    with st.spinner(""):
+    with st.spinner("데이터 분석 중..."):
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
         cross_signals = load_cross_signals(timeframe_map[period])
+        # 전략적 인사이트 생성
+        strategic_insights = generate_strategic_insights(df, youtube_df, metrics, list(metrics['키워드']))
 
     # Demo mode banner
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
+
+    # ============================================
+    # 1. 요약 메트릭 카드
+    # ============================================
+    st.markdown('<p class="section-title">요약</p>', unsafe_allow_html=True)
+
+    summary = strategic_insights['summary']
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">분석 키워드</div>
+            <div class="metric-value">{summary['total_keywords']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">성장기 키워드</div>
+            <div class="metric-value metric-value-highlight">{summary['growth_stage_count']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">안정 트렌드</div>
+            <div class="metric-value">{summary['stable_trend_count']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with m4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">우선 추천</div>
+            <div class="metric-value metric-value-highlight">{summary['priority_count']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 2. 우선순위 키워드 추천
+    # ============================================
+    st.markdown('<p class="section-title">우선순위 키워드</p>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">🎯 기획 추천 키워드</h3>', unsafe_allow_html=True)
+    st.markdown('<p class="section-desc">성장기 시장 + 지속 성장 트렌드를 보이는 키워드</p>', unsafe_allow_html=True)
+
+    priority_kws = strategic_insights['priority_keywords']
+    if priority_kws:
+        for idx, pk in enumerate(priority_kws[:5]):
+            confidence_bar = "🟢" * (pk['confidence'] // 20) + "⚪" * (5 - pk['confidence'] // 20)
+            st.markdown(f"""
+            <div class="dual-source-card">
+                <div class="dual-source-header">
+                    <span class="dual-source-title">{idx + 1}. {pk['keyword']}</span>
+                    <span style="font-size: 0.85rem; color: #6366f1;">{pk['reason']}</span>
+                </div>
+                <div class="dual-source-row">
+                    <div class="source-item">
+                        <div class="source-item-label"><span class="web-badge">🌐 Web</span> 성장률</div>
+                        <div class="source-item-value {'positive' if pk['web_growth'] > 0 else 'negative'}">{'+' if pk['web_growth'] > 0 else ''}{pk['web_growth']:.1f}%</div>
+                    </div>
+                    <div class="source-item">
+                        <div class="source-item-label"><span class="youtube-badge">▶️ YT</span> 성장률</div>
+                        <div class="source-item-value {'positive' if pk['youtube_growth'] > 0 else 'negative'}">{'+' if pk['youtube_growth'] > 0 else ''}{pk['youtube_growth']:.1f}%</div>
+                    </div>
+                    <div class="source-item">
+                        <div class="source-item-label">신뢰도</div>
+                        <div class="source-item-value">{confidence_bar} {pk['confidence']}%</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("현재 우선 추천 조건을 만족하는 키워드가 없습니다.")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 3. 시장 단계별 분류
+    # ============================================
+    st.markdown('<p class="section-title">시장 단계 분석</p>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">📊 키워드별 시장 단계</h3>', unsafe_allow_html=True)
+
+    market_stages = strategic_insights['market_stages']
+    stage_groups = {'🌱 도입기': [], '📈 성장기': [], '🏔️ 성숙기': [], '📉 쇠퇴기': [], '🔄 전환기': []}
+
+    for kw, stage_info in market_stages.items():
+        stage_groups[stage_info['stage']].append(kw)
+
+    stage_cols = st.columns(5)
+    stage_labels = ['🌱 도입기', '📈 성장기', '🏔️ 성숙기', '📉 쇠퇴기', '🔄 전환기']
+
+    for idx, stage in enumerate(stage_labels):
+        with stage_cols[idx]:
+            st.markdown(f"**{stage}**")
+            st.markdown(f"<span style='font-size: 1.5rem; font-weight: 700;'>{len(stage_groups[stage])}</span>", unsafe_allow_html=True)
+            if stage_groups[stage]:
+                for kw in stage_groups[stage][:3]:
+                    st.markdown(f"<span class='tag-chip'>{kw}</span>", unsafe_allow_html=True)
+                if len(stage_groups[stage]) > 3:
+                    st.markdown(f"<span style='color: #64748b; font-size: 0.8rem;'>외 {len(stage_groups[stage]) - 3}개</span>", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 4. 트렌드 분류 (지속 성장 vs 일시적 급등)
+    # ============================================
+    st.markdown('<p class="section-title">트렌드 분류</p>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">📈 지속 성장 vs 일시적 급등</h3>', unsafe_allow_html=True)
+
+    trend_classifications = strategic_insights['trend_classifications']
+    sustainable = []
+    temporary = []
+    other = []
+
+    for kw, tc in trend_classifications.items():
+        if tc['type'] in ['지속 성장', '완만한 성장', '안정적 유지']:
+            sustainable.append({'keyword': kw, **tc})
+        elif tc['type'] in ['일시적 급등', '급등 후 하락']:
+            temporary.append({'keyword': kw, **tc})
+        else:
+            other.append({'keyword': kw, **tc})
+
+    tc1, tc2 = st.columns(2)
+    with tc1:
+        st.markdown("**✅ 지속 성장 키워드**")
+        st.markdown("<p style='font-size: 0.85rem; color: #64748b;'>안정적인 상승 추세 유지</p>", unsafe_allow_html=True)
+        if sustainable:
+            for item in sustainable[:5]:
+                st.markdown(f"- **{item['keyword']}**: {item['reason']} (신뢰도 {item['confidence']}%)")
+        else:
+            st.write("해당 없음")
+
+    with tc2:
+        st.markdown("**⚠️ 일시적 급등 키워드**")
+        st.markdown("<p style='font-size: 0.85rem; color: #64748b;'>변동성 높음, 주의 필요</p>", unsafe_allow_html=True)
+        if temporary:
+            for item in temporary[:5]:
+                st.markdown(f"- **{item['keyword']}**: {item['reason']} (신뢰도 {item['confidence']}%)")
+        else:
+            st.write("해당 없음")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 5. 상관관계 분석
+    # ============================================
+    st.markdown('<p class="section-title">Web-YouTube 상관관계</p>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">🔗 플랫폼 간 연관성</h3>', unsafe_allow_html=True)
+
+    correlations = strategic_insights['correlations']
+    high_corr = [(k, v) for k, v in correlations.items() if v is not None and v > 0.6]
+    low_corr = [(k, v) for k, v in correlations.items() if v is not None and v < 0.3]
+
+    corr1, corr2 = st.columns(2)
+    with corr1:
+        st.markdown("**🔥 높은 상관관계** (>0.6)")
+        if high_corr:
+            for kw, corr in sorted(high_corr, key=lambda x: x[1], reverse=True)[:5]:
+                st.markdown(f"- {kw}: **{corr:.3f}**")
+        else:
+            st.write("해당 없음")
+    with corr2:
+        st.markdown("**📊 낮은 상관관계** (<0.3)")
+        if low_corr:
+            for kw, corr in sorted(low_corr, key=lambda x: x[1])[:5]:
+                st.markdown(f"- {kw}: **{corr:.3f}**")
+        else:
+            st.write("해당 없음")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 6. 기존 요약 정보
+    # ============================================
+    st.markdown('<p class="section-title">추가 분석</p>', unsafe_allow_html=True)
 
     new_list = metrics[metrics['추천액션'].str.contains('신규')]['키워드'].tolist()
     test_list = metrics[metrics['추천액션'].str.contains('테스트')]['키워드'].tolist()
@@ -1812,15 +2445,6 @@ def page_report():
         else:
             st.write("없음")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("**Top 5 성장률 (웹 검색)**")
-
-    top5 = metrics.sort_values('성장률(%)', ascending=False).head(5)
-    for i, (_, r) in enumerate(top5.iterrows()):
-        g = r['성장률(%)']
-        g_display = format_growth_rate(g)
-        st.markdown(f"{i+1}. **{r['키워드']}** · {g_display} · {r['추천액션']}")
-
     # Cross-signal insights
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("**다중 신호 인사이트**")
@@ -1834,23 +2458,45 @@ def page_report():
         st.markdown("현재 신호 강도가 높은 키워드가 없습니다.")
 
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 7. 다운로드 섹션
+    # ============================================
     st.markdown('<p class="section-title">다운로드</p>', unsafe_allow_html=True)
 
-    d1, d2 = st.columns(2)
+    # HTML 리포트 생성
+    report_html = generate_report_html(metrics, strategic_insights, cross_signals, period)
+
+    d1, d2, d3 = st.columns(3)
     with d1:
         st.download_button(
-            "분석 결과 CSV",
+            "📊 분석 결과 CSV",
             metrics.to_csv(index=False).encode('utf-8-sig'),
             "edutrend_analysis.csv",
             use_container_width=True
         )
     with d2:
         st.download_button(
-            "원본 데이터 CSV",
+            "📈 원본 데이터 CSV",
             df.to_csv().encode('utf-8-sig'),
             "edutrend_raw.csv",
             use_container_width=True
         )
+    with d3:
+        st.download_button(
+            "📄 리포트 다운로드 (HTML)",
+            report_html.encode('utf-8'),
+            f"edutrend_report_{datetime.now().strftime('%Y%m%d')}.html",
+            mime="text/html",
+            use_container_width=True,
+            help="HTML 파일을 다운로드 후 브라우저에서 열어 PDF로 인쇄할 수 있습니다"
+        )
+
+    st.markdown("""
+    <div class="notice-box" style="margin-top: 1rem; font-size: 0.85rem;">
+        <strong>💡 PDF 저장 방법:</strong> HTML 리포트를 다운로드한 후, 브라우저에서 열고 <code>Ctrl+P</code> (또는 <code>Cmd+P</code>)를 눌러 PDF로 인쇄하세요.
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # --------------------------------------------------------------------------

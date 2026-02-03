@@ -495,6 +495,332 @@ def analyze_cross_signals(web_metrics, youtube_df, keywords):
 
 
 # =============================================================================
+# 데이터 분석 함수 (이동평균, 정규화, 상관분석)
+# =============================================================================
+
+def apply_moving_average(df, window=7):
+    """
+    시계열 데이터에 이동 평균(Moving Average)을 적용합니다.
+
+    Args:
+        df: pandas DataFrame (날짜 인덱스, 키워드 컬럼)
+        window: 이동 평균 윈도우 크기 (기본값: 7일)
+
+    Returns:
+        DataFrame: 이동 평균이 적용된 새로운 DataFrame
+    """
+    if df.empty:
+        return df
+
+    # 모든 컬럼에 이동 평균 적용
+    ma_df = df.rolling(window=window, min_periods=1).mean()
+    return ma_df
+
+
+def normalize_data(df, method='minmax'):
+    """
+    데이터를 정규화합니다 (Min-Max Scaling: 0-100 범위).
+
+    Args:
+        df: pandas DataFrame (날짜 인덱스, 키워드 컬럼)
+        method: 정규화 방법 ('minmax' 지원)
+
+    Returns:
+        DataFrame: 정규화된 새로운 DataFrame
+    """
+    if df.empty:
+        return df
+
+    normalized_df = pd.DataFrame(index=df.index)
+
+    for col in df.columns:
+        series = df[col]
+        if isinstance(series, pd.DataFrame):
+            series = series.iloc[:, 0]
+
+        min_val = series.min()
+        max_val = series.max()
+
+        # min == max인 경우 (모든 값이 동일)
+        if max_val == min_val:
+            normalized_df[col] = 50.0  # 중간값으로 설정
+        else:
+            # Min-Max Scaling: (x - min) / (max - min) * 100
+            normalized_df[col] = ((series - min_val) / (max_val - min_val)) * 100
+
+    return normalized_df
+
+
+def calculate_correlation(web_df, youtube_df, keywords):
+    """
+    웹 검색과 YouTube 검색 간의 Pearson 상관 계수를 계산합니다.
+
+    Args:
+        web_df: 웹 트렌드 DataFrame
+        youtube_df: YouTube 트렌드 DataFrame
+        keywords: 분석할 키워드 리스트
+
+    Returns:
+        dict: 키워드별 상관 계수 {'키워드': correlation_value}
+    """
+    correlations = {}
+
+    if web_df.empty or youtube_df.empty:
+        return correlations
+
+    for kw in keywords:
+        if kw in web_df.columns and kw in youtube_df.columns:
+            web_series = web_df[kw]
+            yt_series = youtube_df[kw]
+
+            # DataFrame인 경우 Series로 변환
+            if isinstance(web_series, pd.DataFrame):
+                web_series = web_series.iloc[:, 0]
+            if isinstance(yt_series, pd.DataFrame):
+                yt_series = yt_series.iloc[:, 0]
+
+            # 인덱스 정렬 (날짜 기준)
+            common_idx = web_series.index.intersection(yt_series.index)
+            if len(common_idx) < 5:  # 최소 5개 데이터 포인트 필요
+                correlations[kw] = None
+                continue
+
+            web_aligned = web_series.loc[common_idx]
+            yt_aligned = yt_series.loc[common_idx]
+
+            # Pearson 상관 계수 계산
+            try:
+                corr = web_aligned.corr(yt_aligned)
+                correlations[kw] = round(corr, 3) if not pd.isna(corr) else None
+            except Exception:
+                correlations[kw] = None
+
+    return correlations
+
+
+def get_trend_classification(df, keyword):
+    """
+    트렌드를 분류합니다: 지속 성장 vs 일시적 급등
+
+    Args:
+        df: 트렌드 DataFrame
+        keyword: 분석할 키워드
+
+    Returns:
+        dict: 분류 결과 (type, reason, confidence)
+    """
+    if df.empty or keyword not in df.columns:
+        return {'type': '판단 불가', 'reason': '데이터 부족', 'confidence': 0}
+
+    series = df[keyword]
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0]
+
+    n = len(series)
+    if n < 14:
+        return {'type': '판단 불가', 'reason': '데이터 부족', 'confidence': 0}
+
+    # 이동 평균으로 노이즈 제거
+    ma_series = series.rolling(window=7, min_periods=1).mean()
+
+    # 변동 계수 (CV)
+    mean_val = ma_series.mean()
+    std_val = ma_series.std()
+    cv = std_val / mean_val if mean_val > 0 else 0
+
+    # 최대값과 평균 비율
+    max_val = ma_series.max()
+    max_ratio = max_val / mean_val if mean_val > 0 else 1
+
+    # 최근 트렌드 기울기 (선형 회귀 단순 근사)
+    recent_n = min(28, n)  # 최근 4주
+    recent_series = ma_series.iloc[-recent_n:]
+    x = range(len(recent_series))
+    slope = ((recent_series.iloc[-1] - recent_series.iloc[0]) / len(recent_series)) if len(recent_series) > 1 else 0
+
+    # 스파이크 검출: 최근 급등 후 하락 패턴
+    peak_idx = ma_series.idxmax()
+    peak_position = list(ma_series.index).index(peak_idx) if peak_idx in ma_series.index else 0
+    is_recent_peak = peak_position > n * 0.7  # 최근 30% 구간에서 피크
+
+    # 분류 로직
+    if cv > 0.5 and max_ratio > 2.0:
+        return {
+            'type': '일시적 급등',
+            'reason': '높은 변동성과 스파이크 패턴 감지',
+            'confidence': min(90, int(cv * 100))
+        }
+    elif is_recent_peak and slope < 0:
+        return {
+            'type': '급등 후 하락',
+            'reason': '최근 피크 후 하락 추세',
+            'confidence': 70
+        }
+    elif slope > 0.3 and cv < 0.4:
+        return {
+            'type': '지속 성장',
+            'reason': '안정적인 상승 추세 유지',
+            'confidence': min(85, int((1 - cv) * 100))
+        }
+    elif slope > 0 and cv < 0.3:
+        return {
+            'type': '완만한 성장',
+            'reason': '낮은 변동성의 완만한 상승',
+            'confidence': 75
+        }
+    elif abs(slope) < 0.1 and cv < 0.3:
+        return {
+            'type': '안정적 유지',
+            'reason': '큰 변동 없이 관심도 유지',
+            'confidence': 80
+        }
+    else:
+        return {
+            'type': '혼합 패턴',
+            'reason': '명확한 추세 없음',
+            'confidence': 50
+        }
+
+
+def get_market_stage(web_growth, youtube_growth, web_recent, correlation):
+    """
+    시장 단계를 판단합니다.
+
+    Args:
+        web_growth: 웹 검색 성장률
+        youtube_growth: YouTube 검색 성장률
+        web_recent: 최근 웹 관심도
+        correlation: 웹-YouTube 상관 계수
+
+    Returns:
+        dict: 시장 단계 정보 (stage, description, recommendation)
+    """
+    # 상관 계수가 None인 경우 처리
+    corr_val = correlation if correlation is not None else 0
+
+    # 성장률 기준
+    avg_growth = (web_growth + youtube_growth) / 2
+
+    if avg_growth > 50 and web_recent < 30:
+        return {
+            'stage': '🌱 도입기',
+            'description': '새롭게 떠오르는 키워드. 초기 진입 기회.',
+            'recommendation': '선점 기회가 있으나 수요 검증 필요'
+        }
+    elif avg_growth > 20 and web_recent >= 30:
+        return {
+            'stage': '📈 성장기',
+            'description': '빠르게 성장 중인 키워드. 적극적 기획 검토.',
+            'recommendation': '차별화된 콘텐츠로 시장 진입 적극 권장'
+        }
+    elif abs(avg_growth) < 15 and web_recent >= 50:
+        return {
+            'stage': '🏔️ 성숙기',
+            'description': '안정적 수요가 있는 키워드. 경쟁 심화.',
+            'recommendation': '기존 콘텐츠 리뉴얼 또는 니치 타겟팅'
+        }
+    elif avg_growth < -10:
+        return {
+            'stage': '📉 쇠퇴기',
+            'description': '관심도 하락 중인 키워드.',
+            'recommendation': '신규 진입 비권장. 기존 콘텐츠 유지만 권장'
+        }
+    else:
+        return {
+            'stage': '🔄 전환기',
+            'description': '트렌드 방향이 불명확한 시기.',
+            'recommendation': '추가 관찰 후 판단 권장'
+        }
+
+
+def generate_strategic_insights(web_df, youtube_df, web_metrics, keywords):
+    """
+    전략적 인사이트 리포트를 생성합니다.
+
+    Args:
+        web_df: 웹 트렌드 DataFrame
+        youtube_df: YouTube 트렌드 DataFrame
+        web_metrics: 웹 메트릭스 DataFrame
+        keywords: 키워드 리스트
+
+    Returns:
+        dict: 전략적 인사이트 데이터
+    """
+    insights = {
+        'priority_keywords': [],
+        'market_stages': {},
+        'trend_classifications': {},
+        'correlations': {},
+        'summary': {}
+    }
+
+    # 상관 계수 계산
+    correlations = calculate_correlation(web_df, youtube_df, keywords)
+    insights['correlations'] = correlations
+
+    # 키워드별 분석
+    for kw in keywords:
+        # 메트릭스 가져오기
+        row = web_metrics[web_metrics['키워드'] == kw]
+        if row.empty:
+            continue
+
+        web_growth = row.iloc[0]['성장률(%)']
+        web_recent = row.iloc[0]['최근 관심도']
+
+        # YouTube 성장률 계산
+        if kw in youtube_df.columns and len(youtube_df) >= 10:
+            yt_series = youtube_df[kw]
+            if isinstance(yt_series, pd.DataFrame):
+                yt_series = yt_series.iloc[:, 0]
+            n_rows = len(yt_series)
+            split_idx = int(n_rows * 0.3)
+            yt_early = float(yt_series.iloc[:split_idx].mean())
+            yt_recent = float(yt_series.iloc[-split_idx:].mean())
+            if pd.isna(yt_early) or yt_early < 1.0:
+                youtube_growth = 0.0
+            else:
+                youtube_growth = ((yt_recent - yt_early) / yt_early) * 100
+        else:
+            youtube_growth = web_growth
+
+        # 트렌드 분류
+        trend_class = get_trend_classification(web_df, kw)
+        insights['trend_classifications'][kw] = trend_class
+
+        # 시장 단계
+        corr = correlations.get(kw)
+        market_stage = get_market_stage(web_growth, youtube_growth, web_recent, corr)
+        insights['market_stages'][kw] = market_stage
+
+        # 우선순위 키워드 선정 (성장기 + 지속 성장)
+        if market_stage['stage'] in ['📈 성장기', '🌱 도입기'] and trend_class['type'] in ['지속 성장', '완만한 성장']:
+            insights['priority_keywords'].append({
+                'keyword': kw,
+                'reason': f"{market_stage['stage']} + {trend_class['type']}",
+                'web_growth': web_growth,
+                'youtube_growth': youtube_growth,
+                'confidence': trend_class['confidence']
+            })
+
+    # 우선순위 정렬 (confidence 기준)
+    insights['priority_keywords'].sort(key=lambda x: x['confidence'], reverse=True)
+
+    # 요약 통계
+    growth_keywords = len([k for k, v in insights['market_stages'].items() if '성장' in v['stage']])
+    stable_keywords = len([k for k, v in insights['trend_classifications'].items() if v['type'] in ['지속 성장', '완만한 성장', '안정적 유지']])
+
+    insights['summary'] = {
+        'total_keywords': len(keywords),
+        'growth_stage_count': growth_keywords,
+        'stable_trend_count': stable_keywords,
+        'priority_count': len(insights['priority_keywords'])
+    }
+
+    return insights
+
+
+# =============================================================================
 # 데이터 한계 명시 텍스트 (UX용)
 # =============================================================================
 
