@@ -1033,11 +1033,11 @@ def load_all_data(timeframe='today 3-m'):
     web_is_mock = False
     youtube_is_mock = False
 
-    if web_df.empty:
+    if web_df.empty or len(web_df.columns) < len(KEYWORDS) * 0.5:
         web_df = get_mock_data(KEYWORDS, timeframe)
         web_is_mock = True
 
-    if youtube_df.empty:
+    if youtube_df.empty or len(youtube_df.columns) < len(KEYWORDS) * 0.5:
         youtube_df = get_mock_youtube_data(KEYWORDS)
         youtube_is_mock = True
 
