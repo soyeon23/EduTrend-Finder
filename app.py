@@ -1,5 +1,4 @@
 import streamlit as st
-import plotly.express as px
 from trends import (
     fetch_trend_data, calculate_growth_metrics, get_mock_data, fetch_related_queries,
     fetch_youtube_trend_data, get_mock_youtube_data, analyze_cross_signals, DATA_LIMITATIONS,
@@ -1557,6 +1556,7 @@ def render_search_results(query, df, metrics, web_is_mock=False, youtube_is_mock
                 navigate_to('detail', kw)
 
         if kw in df.columns:
+            import plotly.express as px
             fig = px.line(df, y=kw)
             fig.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="", yaxis_title="")
             fig.update_traces(line_color='#6366f1')
@@ -1643,6 +1643,7 @@ def page_detail():
     chart_col1, chart_col2 = st.columns(2)
 
     with chart_col1:
+        import plotly.express as px
         st.markdown('<h3 class="section-heading"><span class="web-badge">🌐 Web</span> 검색 관심도</h3>', unsafe_allow_html=True)
         fig_web = px.line(df, y=kw)
         fig_web.update_layout(height=250, xaxis_title="", yaxis_title="관심도 (0-100)", margin=dict(t=10))
@@ -1652,6 +1653,7 @@ def page_detail():
     with chart_col2:
         st.markdown('<h3 class="section-heading"><span class="youtube-badge">▶️ YouTube</span> 검색 관심도</h3>', unsafe_allow_html=True)
         if kw in youtube_df.columns:
+            import plotly.express as px
             fig_yt = px.line(youtube_df, y=kw)
             fig_yt.update_layout(height=250, xaxis_title="", yaxis_title="관심도 (0-100)", margin=dict(t=10))
             fig_yt.update_traces(line_color='#dc2626', line_width=2)
@@ -1731,12 +1733,14 @@ def page_compare():
                                horizontal=True, label_visibility="collapsed")
 
         if data_source == "웹 검색":
+            import plotly.express as px
             fig = px.line(df[selected])
             fig.update_layout(height=350, xaxis_title="", yaxis_title="관심도 (웹)")
             st.plotly_chart(fig, use_container_width=True)
         elif data_source == "YouTube 검색":
             available = [k for k in selected if k in youtube_df.columns]
             if available:
+                import plotly.express as px
                 fig = px.line(youtube_df[available])
                 fig.update_layout(height=350, xaxis_title="", yaxis_title="관심도 (YouTube)")
                 st.plotly_chart(fig, use_container_width=True)
@@ -1747,6 +1751,7 @@ def page_compare():
             c1, c2 = st.columns(2)
             with c1:
                 st.markdown('<span class="web-badge">🌐 Web</span>', unsafe_allow_html=True)
+                import plotly.express as px
                 fig_web = px.line(df[selected])
                 fig_web.update_layout(height=280, xaxis_title="", yaxis_title="관심도", margin=dict(t=10))
                 st.plotly_chart(fig_web, use_container_width=True)
@@ -1754,6 +1759,7 @@ def page_compare():
                 st.markdown('<span class="youtube-badge">▶️ YouTube</span>', unsafe_allow_html=True)
                 available = [k for k in selected if k in youtube_df.columns]
                 if available:
+                    import plotly.express as px
                     fig_yt = px.line(youtube_df[available])
                     fig_yt.update_layout(height=280, xaxis_title="", yaxis_title="관심도", margin=dict(t=10))
                     st.plotly_chart(fig_yt, use_container_width=True)

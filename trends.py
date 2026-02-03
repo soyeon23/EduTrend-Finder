@@ -12,8 +12,15 @@ def create_pytrends():
     except Exception:
         return None
 
-# 기본 PyTrends 인스턴스 (연관 검색어 등 단일 스레드 작업용)
-pytrends = create_pytrends()
+# 전역 인스턴스 보관용 (lazy loading)
+_pytrends_singleton = None
+
+def _get_pytrends():
+    """PyTrends 인스턴스를 지연 로딩하여 반환합니다."""
+    global _pytrends_singleton
+    if _pytrends_singleton is None:
+        _pytrends_singleton = create_pytrends()
+    return _pytrends_singleton
 
 def fetch_trend_data(keywords, timeframe='today 3-m', pytrends_instance=None):
     """
@@ -22,7 +29,7 @@ def fetch_trend_data(keywords, timeframe='today 3-m', pytrends_instance=None):
     실패 시 Mock Data를 반환할 수도 있도록 처리합니다.
     """
     # 스레드 안전을 위해 인스턴스 사용 또는 새로 생성
-    pt = pytrends_instance if pytrends_instance else pytrends
+    pt = pytrends_instance if pytrends_instance else _get_pytrends()
     if pt is None:
         pt = create_pytrends()
     if pt is None:
