@@ -939,6 +939,10 @@ if 'apply_normalization' not in st.session_state:
 if 'ma_window' not in st.session_state:
     st.session_state.ma_window = 7
 
+# Data update timestamp tracking
+if 'last_data_update' not in st.session_state:
+    st.session_state.last_data_update = None
+
 # --------------------------------------------------------------------------
 # SIDEBAR OPTIONS
 # --------------------------------------------------------------------------
@@ -968,8 +972,16 @@ with st.sidebar:
     st.session_state.apply_normalization = st.checkbox(
         "Min-Max 정규화 (0-100)",
         value=st.session_state.apply_normalization,
-        help="모든 키워드를 0-100 범위로 정규화하여 비교합니다"
+        help="모든 키워드를 0-100 범위로 정규화하여 공정한 비교가 가능합니다"
     )
+
+    if st.session_state.apply_normalization:
+        st.markdown("""
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.8rem; color: #1e40af;">
+            <strong>ℹ️ 정규화 활성화됨</strong><br>
+            각 키워드의 최솟값을 0, 최댓값을 100으로 변환하여 상대적 추세를 비교합니다.
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -979,6 +991,16 @@ with st.sidebar:
     • <strong>이동 평균</strong>: 단기 변동을 완화하여 추세 파악<br>
     • <strong>정규화</strong>: 키워드 간 상대적 비교 용이<br>
     • <strong>상관 계수</strong>: Web-YouTube 간 연관성 측정
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    st.markdown("**⚠️ 데이터 해석 유의사항**")
+    st.markdown("""
+    <div style="font-size: 0.75rem; color: #94a3b8; line-height: 1.5;">
+    Google Trends 데이터는 <strong>상대 지수</strong>입니다.<br>
+    실제 검색량이 아닌 상대적 관심도(0-100)를 나타냅니다.
     </div>
     """, unsafe_allow_html=True)
 
@@ -1263,6 +1285,63 @@ def render_service_positioning():
     st.markdown(f"""
     <div class="positioning-notice">
         {DATA_LIMITATIONS['positioning']}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_normalization_notice():
+    """
+    정규화 상태 안내 문구를 렌더링합니다.
+    정규화가 활성화된 경우에만 표시됩니다.
+    """
+    if st.session_state.apply_normalization:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                    border: 1px solid #93c5fd;
+                    border-radius: 8px;
+                    padding: 0.75rem 1rem;
+                    margin-bottom: 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;">
+            <span style="font-size: 1.2rem;">ℹ️</span>
+            <div>
+                <div style="font-size: 0.9rem; font-weight: 600; color: #1e40af; margin-bottom: 0.2rem;">
+                    현재 차트는 모든 키워드를 0–100 기준으로 정규화하여 비교하고 있습니다.
+                </div>
+                <div style="font-size: 0.8rem; color: #3b82f6;">
+                    키워드 간 상대적 추세 비교 목적 · 실제 검색량 비교가 아님
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+def render_data_footer():
+    """
+    데이터 출처 및 업데이트 시점을 표시하는 Footer를 렌더링합니다.
+    """
+    # 업데이트 시점 가져오기
+    last_update = st.session_state.get('last_data_update')
+    if last_update:
+        update_str = last_update.strftime("%Y-%m-%d %H:%M")
+    else:
+        update_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    st.markdown(f"""
+    <div style="text-align: center;
+                padding: 1.5rem 0;
+                color: #94a3b8;
+                font-size: 0.75rem;
+                border-top: 1px solid #f0f0f0;
+                margin-top: 2rem;
+                line-height: 1.8;">
+        <div style="margin-bottom: 0.3rem;">
+            <strong>Data Source:</strong> Google Trends (Web Search · YouTube Search)
+        </div>
+        <div>
+            <strong>Last Updated:</strong> {update_str} (KST)
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1769,6 +1848,8 @@ def page_dashboard():
     # Load Data (Web + YouTube 병렬 로딩)
     with st.spinner("데이터 로드 중..."):
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
+        # 데이터 업데이트 시점 기록
+        st.session_state.last_data_update = datetime.now()
 
     # Demo mode banner if using mock data
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
@@ -1906,6 +1987,9 @@ def page_dashboard():
     # 서비스 포지셔닝 명시 (하단 고정)
     render_service_positioning()
 
+    # 데이터 출처 및 업데이트 시점 Footer
+    render_data_footer()
+
 
 def render_search_results(query, df, metrics, web_is_mock=False, youtube_is_mock=False):
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
@@ -1986,6 +2070,7 @@ def page_detail():
 
     with st.spinner(""):
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe)
+        st.session_state.last_data_update = datetime.now()
 
     # Demo mode banner
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
@@ -2022,14 +2107,12 @@ def page_detail():
     # Charts - Web and YouTube side by side
     st.markdown('<p class="section-title">트렌드</p>', unsafe_allow_html=True)
 
-    # 분석 옵션 상태 표시
-    options_text = []
+    # 정규화 안내 문구 (활성화 시에만 표시)
+    render_normalization_notice()
+
+    # 이동 평균 옵션 표시
     if st.session_state.show_moving_average:
-        options_text.append(f"📈 {st.session_state.ma_window}일 이동평균")
-    if st.session_state.apply_normalization:
-        options_text.append("📊 정규화 적용")
-    if options_text:
-        st.markdown(f"<p style='font-size: 0.85rem; color: #6366f1;'>적용된 옵션: {' · '.join(options_text)}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size: 0.85rem; color: #6366f1;'>📈 {st.session_state.ma_window}일 이동평균 적용됨</p>", unsafe_allow_html=True)
 
     chart_col1, chart_col2 = st.columns(2)
 
@@ -2112,6 +2195,9 @@ def page_detail():
         </div>
         """, unsafe_allow_html=True)
 
+    # 데이터 출처 및 업데이트 시점 Footer
+    render_data_footer()
+
 
 def page_compare():
     st.markdown('<p class="section-title">비교 분석</p>', unsafe_allow_html=True)
@@ -2126,6 +2212,7 @@ def page_compare():
 
     with st.spinner(""):
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
+        st.session_state.last_data_update = datetime.now()
 
     # Demo mode banner
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
@@ -2139,14 +2226,12 @@ def page_compare():
     selected = st.multiselect("키워드 선택 (최대 5개)", list(metrics['키워드'].unique()), default=default)
 
     if selected:
-        # 분석 옵션 상태 표시
-        options_text = []
+        # 정규화 안내 문구 (활성화 시에만 표시)
+        render_normalization_notice()
+
+        # 이동 평균 옵션 표시
         if st.session_state.show_moving_average:
-            options_text.append(f"📈 {st.session_state.ma_window}일 이동평균")
-        if st.session_state.apply_normalization:
-            options_text.append("📊 정규화 적용")
-        if options_text:
-            st.markdown(f"<p style='font-size: 0.85rem; color: #6366f1;'>적용된 옵션: {' · '.join(options_text)}</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size: 0.85rem; color: #6366f1;'>📈 {st.session_state.ma_window}일 이동평균 적용됨</p>", unsafe_allow_html=True)
 
         # Data source tabs
         data_source = st.radio("데이터 소스", ["웹 검색", "YouTube 검색", "둘 다 비교"],
@@ -2227,6 +2312,9 @@ def page_compare():
             use_container_width=True
         )
 
+    # 데이터 출처 및 업데이트 시점 Footer
+    render_data_footer()
+
 
 def page_report():
     st.markdown('<p class="section-title">리포트</p>', unsafe_allow_html=True)
@@ -2248,6 +2336,7 @@ def page_report():
         cross_signals = load_cross_signals(timeframe_map[period])
         # 전략적 인사이트 생성
         strategic_insights = generate_strategic_insights(df, youtube_df, metrics, list(metrics['키워드']))
+        st.session_state.last_data_update = datetime.now()
 
     # Demo mode banner
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
@@ -2498,6 +2587,9 @@ def page_report():
     </div>
     """, unsafe_allow_html=True)
 
+    # 데이터 출처 및 업데이트 시점 Footer
+    render_data_footer()
+
 
 # --------------------------------------------------------------------------
 # 6. SIMULATOR PAGE
@@ -2742,8 +2834,17 @@ elif st.session_state.page == 'report':
 elif st.session_state.page == 'simulator':
     page_simulator()
 
-st.markdown("""
+# 글로벌 Footer (데이터 출처 및 업데이트 시점)
+last_update = st.session_state.get('last_data_update')
+update_str = last_update.strftime("%Y-%m-%d %H:%M") if last_update else datetime.now().strftime("%Y-%m-%d %H:%M")
+
+st.markdown(f"""
 <div class="app-footer">
-    EduTrend Finder DataSource : Web · YouTube · Google Trends
+    <div style="margin-bottom: 0.3rem;">
+        <strong>Data Source:</strong> Google Trends (Web Search · YouTube Search)
+    </div>
+    <div style="font-size: 0.7rem; color: #b0b0b0;">
+        Last Updated: {update_str} (KST)
+    </div>
 </div>
 """, unsafe_allow_html=True)
