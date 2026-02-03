@@ -898,12 +898,14 @@ st.markdown("""
 # --------------------------------------------------------------------------
 # 2. STATE MANAGEMENT & NAVIGATION
 # --------------------------------------------------------------------------
-# SUPER FORCE: If version not matched, reset to home
+# 2. SESSION STATE
+# --------------------------------------------------------------------------
 CURRENT_V = "v2_landing"
+
+# Page & Version check
 if 'app_version' not in st.session_state or st.session_state.app_version != CURRENT_V:
     st.session_state.page = 'home'
     st.session_state.app_version = CURRENT_V
-    st.rerun()
 
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
