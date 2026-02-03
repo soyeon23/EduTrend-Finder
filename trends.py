@@ -64,23 +64,10 @@ def fetch_trend_data(keywords, timeframe='today 3-m', pytrends_instance=None):
                     new_cols = [c for c in data.columns if c not in all_data.columns]
                     if new_cols:
                         all_data = pd.concat([all_data, data[new_cols]], axis=1)
-            else:
-                # 데이터가 비어있어도 컬럼은 유지하도록 빈 데이터프레임 생성
-                empty_chunk = pd.DataFrame(0, index=all_data.index if not all_data.empty else [pd.Timestamp.now()], columns=chunk)
-                if all_data.empty:
-                    all_data = empty_chunk
-                else:
-                    all_data = pd.concat([all_data, empty_chunk], axis=1)
-
         except Exception as e:
             print(f"Error fetching chunk {chunk}: {e}")
-            # 에러 발생 시 해당 키워드들을 0으로 채운 빈 데이터프레임으로 추가
-            # 이렇게 해야 나중에 '데이터 부족'으로 표시되거나 전체 Mock 데이터로 전환될 수 있음
-            error_df = pd.DataFrame(0, index=all_data.index if not all_data.empty else [pd.Timestamp.now()], columns=chunk)
-            if all_data.empty:
-                all_data = error_df
-            else:
-                all_data = pd.concat([all_data, error_df], axis=1)
+            # 에러 발생 시 건너뜀 (전체가 비어있어야 Mock Data로 전환됨)
+            pass
             
     return all_data
 
@@ -344,20 +331,9 @@ def fetch_youtube_trend_data(keywords, timeframe='today 3-m', pytrends_instance=
                     new_cols = [c for c in data.columns if c not in all_data.columns]
                     if new_cols:
                         all_data = pd.concat([all_data, data[new_cols]], axis=1)
-            else:
-                # 데이터가 비어있어도 컬럼은 유지
-                empty_chunk = pd.DataFrame(0, index=all_data.index if not all_data.empty else [pd.Timestamp.now()], columns=chunk)
-                if all_data.empty:
-                    all_data = empty_chunk
-                else:
-                    all_data = pd.concat([all_data, empty_chunk], axis=1)
         except Exception as e:
             print(f"Error fetching YouTube chunk {chunk}: {e}")
-            error_df = pd.DataFrame(0, index=all_data.index if not all_data.empty else [pd.Timestamp.now()], columns=chunk)
-            if all_data.empty:
-                all_data = error_df
-            else:
-                all_data = pd.concat([all_data, error_df], axis=1)
+            pass
 
     return all_data
 
