@@ -3,3 +3,4 @@ pandas
 plotly
 pytrends
 openpyxl
+urllib3<2.0.0
