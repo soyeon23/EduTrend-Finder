@@ -1803,7 +1803,7 @@ def page_home():
                 <div class="home-card-desc">최대 5개 키워드 간<br>관심도 추이 교차 비교</div>
             </div>
         ''', unsafe_allow_html=True)
-        if st.button("바로가기 →", key="nav_comp_main", use_container_width=True):
+        if st.button("바로가기 →", key="nav_comp_main", width='stretch'):
             navigate_to('compare')
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1816,7 +1816,7 @@ def page_home():
                 <div class="home-card-desc">심층 분석 결과와<br>신규 기획 추천</div>
             </div>
         ''', unsafe_allow_html=True)
-        if st.button("바로가기 →", key="nav_rep_main", use_container_width=True):
+        if st.button("바로가기 →", key="nav_rep_main", width='stretch'):
             navigate_to('report')
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1924,7 +1924,7 @@ def page_dashboard():
             with cols[0]:
                 st.markdown(f"<span style='color:#a3a3a3; font-weight:600;'>{rank}</span>", unsafe_allow_html=True)
             with cols[1]:
-                if st.button(row['키워드'], key=f"kw_{rank}", use_container_width=True):
+                if st.button(row['키워드'], key=f"kw_{rank}", width='stretch'):
                     navigate_to('detail', row['키워드'])
             with cols[2]:
                 st.markdown(f"<span class='keyword-growth {g_class}'>{growth_display}</span>", unsafe_allow_html=True)
@@ -1972,7 +1972,7 @@ def page_dashboard():
             "최근 관심도": st.column_config.ProgressColumn("관심도", min_value=0, max_value=100),
         },
         hide_index=True,
-        use_container_width=True,
+        width='stretch',
         height=350,
         disabled=("키워드", "성장률(%)", "최근 관심도", "추천액션", "진단유형", "카테고리")
     )
@@ -2026,7 +2026,7 @@ def render_search_results(query, df, metrics, web_is_mock=False, youtube_is_mock
             fig = px.line(df, y=kw)
             fig.update_layout(height=200, margin=dict(l=0,r=0,t=10,b=0), xaxis_title="", yaxis_title="")
             fig.update_traces(line_color='#6366f1')
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         mc = st.columns(4)
         mc[0].metric("관심도", f"{row['최근 관심도']:.0f}")
@@ -2124,7 +2124,7 @@ def page_detail():
             normalize=st.session_state.apply_normalization
         )
         if fig_web:
-            st.plotly_chart(fig_web, use_container_width=True)
+            st.plotly_chart(fig_web, width='stretch')
 
     with chart_col2:
         st.markdown('<h3 class="section-heading"><span class="youtube-badge">▶️ YouTube</span> 검색 관심도</h3>', unsafe_allow_html=True)
@@ -2135,7 +2135,7 @@ def page_detail():
                 normalize=st.session_state.apply_normalization
             )
             if fig_yt:
-                st.plotly_chart(fig_yt, use_container_width=True)
+                st.plotly_chart(fig_yt, width='stretch')
         else:
             st.info("YouTube 데이터 없음")
 
@@ -2244,7 +2244,7 @@ def page_compare():
                 normalize=st.session_state.apply_normalization
             )
             if fig:
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
         elif data_source == "YouTube 검색":
             available = [k for k in selected if k in youtube_df.columns]
             if available:
@@ -2254,7 +2254,7 @@ def page_compare():
                     normalize=st.session_state.apply_normalization
                 )
                 if fig:
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
             else:
                 st.info("선택한 키워드의 YouTube 데이터가 없습니다.")
         else:
@@ -2269,7 +2269,7 @@ def page_compare():
                 )
                 if fig_web:
                     fig_web.update_layout(height=280)
-                    st.plotly_chart(fig_web, use_container_width=True)
+                    st.plotly_chart(fig_web, width='stretch')
             with c2:
                 st.markdown('<span class="youtube-badge">▶️ YouTube</span>', unsafe_allow_html=True)
                 available = [k for k in selected if k in youtube_df.columns]
@@ -2281,7 +2281,7 @@ def page_compare():
                     )
                     if fig_yt:
                         fig_yt.update_layout(height=280)
-                        st.plotly_chart(fig_yt, use_container_width=True)
+                        st.plotly_chart(fig_yt, width='stretch')
                 else:
                     st.info("YouTube 데이터 없음")
 
@@ -2300,7 +2300,7 @@ def page_compare():
 
         import pandas as pd
         corr_df = pd.DataFrame(corr_data)
-        st.dataframe(corr_df, hide_index=True, use_container_width=True)
+        st.dataframe(corr_df, hide_index=True, width='stretch')
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2309,7 +2309,7 @@ def page_compare():
             comp.sort_values('성장률(%)', ascending=False),
             column_order=("키워드", "성장률(%)", "최근 관심도", "진단유형", "추천액션"),
             hide_index=True,
-            use_container_width=True
+            width='stretch'
         )
 
     # 데이터 출처 및 업데이트 시점 Footer
@@ -2562,14 +2562,14 @@ def page_report():
             "📊 분석 결과 CSV",
             metrics.to_csv(index=False).encode('utf-8-sig'),
             "edutrend_analysis.csv",
-            use_container_width=True
+            width='stretch'
         )
     with d2:
         st.download_button(
             "📈 원본 데이터 CSV",
             df.to_csv().encode('utf-8-sig'),
             "edutrend_raw.csv",
-            use_container_width=True
+            width='stretch'
         )
     with d3:
         st.download_button(
@@ -2577,7 +2577,7 @@ def page_report():
             report_html.encode('utf-8'),
             f"edutrend_report_{datetime.now().strftime('%Y%m%d')}.html",
             mime="text/html",
-            use_container_width=True,
+            width='stretch',
             help="HTML 파일을 다운로드 후 브라우저에서 열어 PDF로 인쇄할 수 있습니다"
         )
 
@@ -2598,7 +2598,7 @@ def page_simulator():
     # Header
     c1, c2 = st.columns([1, 5])
     with c1:
-        if st.button("← 대시보드"):
+        if st.button("← 대시보드", width='stretch'):
             st.session_state.sim_step = 1
             st.session_state.sim_selected = set()
             navigate_to('dashboard')

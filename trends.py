@@ -42,34 +42,41 @@ def fetch_trend_data(keywords, timeframe='today 3-m', pytrends_instance=None):
     keyword_chunks = [keywords[i:i + chunk_size] for i in range(0, len(keywords), chunk_size)]
 
     for i, chunk in enumerate(keyword_chunks):
-        try:
-            # 첫 번째 청크는 딜레이 없이, 이후부터만 최소 딜레이 (Rate Limit 방지)
-            if i > 0:
-                time.sleep(random.uniform(0.3, 0.6))
+        retries = 3
+        while retries > 0:
+            try:
+                # 첫 번째 청크는 최소 딜레이, 이후부터는 좀 더 긴 딜레이 (Rate Limit 방지)
+                if i > 0 or retries < 3:
+                    time.sleep(random.uniform(1.0, 2.0))
+                    
+                pt.build_payload(chunk, cat=0, timeframe=timeframe, geo='KR')
+                data = pt.interest_over_time()
                 
-            pt.build_payload(chunk, cat=0, timeframe=timeframe, geo='KR')
-            data = pt.interest_over_time()
-            
-            if not data.empty:
-                # isPartial 컬럼 제거
-                if 'isPartial' in data.columns:
-                    data = data.drop(columns=['isPartial'])
+                if not data.empty:
+                    # isPartial 컬럼 제거
+                    if 'isPartial' in data.columns:
+                        data = data.drop(columns=['isPartial'])
 
-                # 중복 컬럼 제거
-                data = data.loc[:, ~data.columns.duplicated()]
+                    # 중복 컬럼 제거
+                    data = data.loc[:, ~data.columns.duplicated()]
 
-                # 데이터 병합
-                if all_data.empty:
-                    all_data = data
-                else:
-                    # 기존 컬럼과 중복되지 않는 것만 추가
-                    new_cols = [c for c in data.columns if c not in all_data.columns]
-                    if new_cols:
-                        all_data = pd.concat([all_data, data[new_cols]], axis=1)
-        except Exception as e:
-            print(f"Error fetching chunk {chunk}: {e}")
-            # 에러 발생 시 건너뜀 (전체가 비어있어야 Mock Data로 전환됨)
-            pass
+                    # 데이터 병합
+                    if all_data.empty:
+                        all_data = data
+                    else:
+                        # 기존 컬럼과 중복되지 않는 것만 추가
+                        new_cols = [c for c in data.columns if c not in all_data.columns]
+                        if new_cols:
+                            all_data = pd.concat([all_data, data[new_cols]], axis=1)
+                break # 성공 시 루프 탈출
+            except Exception as e:
+                retries -= 1
+                if "429" in str(e) and retries > 0:
+                    time.sleep(5) # 429 에러 시 5초 대기 후 재시도
+                    continue
+                print(f"Error fetching chunk {chunk}: {e}")
+                # 에러 발생 시 건너뜀 (전체가 비어있어야 Mock Data로 전환됨)
+                break
             
     return all_data
 
@@ -311,31 +318,38 @@ def fetch_youtube_trend_data(keywords, timeframe='today 3-m', pytrends_instance=
     keyword_chunks = [keywords[i:i + chunk_size] for i in range(0, len(keywords), chunk_size)]
 
     for i, chunk in enumerate(keyword_chunks):
-        try:
-            # 첫 번째 청크는 딜레이 없이, 이후부터만 최소 딜레이 (Rate Limit 방지)
-            if i > 0:
-                time.sleep(random.uniform(0.3, 0.6))
-                
-            pt.build_payload(chunk, cat=0, timeframe=timeframe, geo='KR', gprop='youtube')
-            data = pt.interest_over_time()
+        retries = 3
+        while retries > 0:
+            try:
+                # 첫 번째 청크는 최소 딜레이, 이후부터는 좀 더 긴 딜레이 (Rate Limit 방지)
+                if i > 0 or retries < 3:
+                    time.sleep(random.uniform(1.0, 2.0))
+                    
+                pt.build_payload(chunk, cat=0, timeframe=timeframe, geo='KR', gprop='youtube')
+                data = pt.interest_over_time()
 
-            if not data.empty:
-                if 'isPartial' in data.columns:
-                    data = data.drop(columns=['isPartial'])
+                if not data.empty:
+                    if 'isPartial' in data.columns:
+                        data = data.drop(columns=['isPartial'])
 
-                # 중복 컬럼 제거
-                data = data.loc[:, ~data.columns.duplicated()]
+                    # 중복 컬럼 제거
+                    data = data.loc[:, ~data.columns.duplicated()]
 
-                if all_data.empty:
-                    all_data = data
-                else:
-                    # 기존 컬럼과 중복되지 않는 것만 추가
-                    new_cols = [c for c in data.columns if c not in all_data.columns]
-                    if new_cols:
-                        all_data = pd.concat([all_data, data[new_cols]], axis=1)
-        except Exception as e:
-            print(f"Error fetching YouTube chunk {chunk}: {e}")
-            pass
+                    if all_data.empty:
+                        all_data = data
+                    else:
+                        # 기존 컬럼과 중복되지 않는 것만 추가
+                        new_cols = [c for c in data.columns if c not in all_data.columns]
+                        if new_cols:
+                            all_data = pd.concat([all_data, data[new_cols]], axis=1)
+                break # 성공 시 루프 탈출
+            except Exception as e:
+                retries -= 1
+                if "429" in str(e) and retries > 0:
+                    time.sleep(5)
+                    continue
+                print(f"Error fetching YouTube chunk {chunk}: {e}")
+                break
 
     return all_data
 
@@ -358,11 +372,11 @@ def fetch_multi_signal_data(keywords, timeframe='today 3-m'):
         pt = create_pytrends()
         return fetch_youtube_trend_data(keywords, timeframe, pytrends_instance=pt)
 
-    # 병렬 실행 (최대 4개의 스레드 사용하여 청크 단위 병렬화 가능성 열어둠)
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    # 병렬 실행 (동시성 2로 제한하여 Rate Limit 방지)
+    with ThreadPoolExecutor(max_workers=2) as executor:
         web_future = executor.submit(fetch_web)
-        # YouTube는 약간의 시차를 두고 시작하여 구글 서버의 요청 밀집 방지
-        time.sleep(0.1)
+        # YouTube는 상당 수준의 시차를 두고 시작하여 구글 서버의 요청 밀집 방지
+        time.sleep(2.0)
         youtube_future = executor.submit(fetch_youtube)
 
         results['web'] = web_future.result()
