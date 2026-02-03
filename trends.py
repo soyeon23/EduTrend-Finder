@@ -76,10 +76,13 @@ def fetch_related_queries(keyword, timeframe='today 3-m'):
     특정 키워드의 연관 검색어(Related Queries)를 가져옵니다.
     """
     try:
-        # 최소 딜레이
+        # 지연 로딩된 인스턴스 사용
+        pt = _get_pytrends()
+        if pt is None:
+            return []
         time.sleep(random.uniform(0.2, 0.4))
-        pytrends.build_payload([keyword], cat=0, timeframe=timeframe, geo='KR')
-        related = pytrends.related_queries()
+        pt.build_payload([keyword], cat=0, timeframe=timeframe, geo='KR')
+        related = pt.related_queries()
         
         if related and keyword in related:
             # top / rising 중 rising(급상승) 우선, 없으면 top
@@ -297,7 +300,7 @@ def fetch_youtube_trend_data(keywords, timeframe='today 3-m', pytrends_instance=
     gprop='youtube'로 YouTube 검색 트렌드 수집.
     """
     # 스레드 안전을 위해 인스턴스 사용 또는 새로 생성
-    pt = pytrends_instance if pytrends_instance else pytrends
+    pt = pytrends_instance if pytrends_instance else _get_pytrends()
     if pt is None:
         pt = create_pytrends()
     if pt is None:
