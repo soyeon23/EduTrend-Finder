@@ -14,10 +14,8 @@ from trends import (
     generate_strategic_insights
 )
 from keyword_list import KEYWORDS
-import random
 import plotly.graph_objects as go
 from datetime import datetime
-import io
 
 # Clean, Minimal SaaS Style CSS
 st.markdown("""
@@ -472,190 +470,6 @@ st.markdown("""
         margin-top: 3rem;
     }
 
-    /* ===== SIMULATOR CTA ===== */
-    .simulator-cta {
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        border: 1px solid #bae6fd;
-        border-radius: 12px;
-        padding: 1.5rem 2rem;
-        margin: 2rem 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-    .simulator-cta-text {
-        flex: 1;
-    }
-    .simulator-cta-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #0369a1;
-        margin-bottom: 0.25rem;
-    }
-    .simulator-cta-desc {
-        font-size: 0.85rem;
-        color: #0c4a6e;
-    }
-
-    /* ===== SIMULATOR CARDS ===== */
-    .sim-card {
-        background: white;
-        border: 2px solid #e5e5e5;
-        border-radius: 12px;
-        padding: 1.5rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        height: 100%;
-    }
-    .sim-card:hover {
-        border-color: #6366f1;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-    }
-    .sim-card.selected {
-        border-color: #6366f1;
-        background: #f5f3ff;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-    }
-    .sim-card-keyword {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        margin-bottom: 0.75rem;
-    }
-    .sim-card-growth {
-        font-size: 1.5rem;
-        font-weight: 800;
-        margin-bottom: 0.5rem;
-    }
-    .sim-card-growth.positive {
-        color: #16a34a;
-    }
-    .sim-card-growth.negative {
-        color: #dc2626;
-    }
-    .sim-card-growth.neutral {
-        color: #737373;
-    }
-    .sim-card-trend {
-        font-size: 0.85rem;
-        color: #737373;
-        padding: 0.3rem 0.6rem;
-        background: #f5f5f5;
-        border-radius: 4px;
-        display: inline-block;
-    }
-    .sim-card-check {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        width: 24px;
-        height: 24px;
-        background: #6366f1;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 0.8rem;
-    }
-
-    /* ===== SIMULATOR REPORT ===== */
-    .sim-report {
-        background: #fafafa;
-        border: 1px solid #e5e5e5;
-        border-radius: 12px;
-        padding: 2rem;
-        margin-top: 2rem;
-    }
-    .sim-report-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e5e5e5;
-    }
-    .sim-report-section {
-        margin-bottom: 1.5rem;
-    }
-    .sim-report-section-title {
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: #6366f1;
-        margin-bottom: 0.5rem;
-    }
-    .sim-report-text {
-        font-size: 0.95rem;
-        color: #374151;
-        line-height: 1.7;
-    }
-    .sim-report-risk {
-        background: #fffbeb;
-        border: 1px solid #fcd34d;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-top: 1rem;
-    }
-    .sim-report-risk-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #92400e;
-        margin-bottom: 0.5rem;
-    }
-    .sim-report-risk-text {
-        font-size: 0.9rem;
-        color: #78350f;
-    }
-
-    /* ===== STEP INDICATOR ===== */
-    .step-indicator {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 2rem;
-    }
-    .step-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .step-number {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    .step-number.active {
-        background: #6366f1;
-        color: white;
-    }
-    .step-number.completed {
-        background: #dcfce7;
-        color: #166534;
-    }
-    .step-number.inactive {
-        background: #f5f5f5;
-        color: #a3a3a3;
-    }
-    .step-label {
-        font-size: 0.85rem;
-        color: #737373;
-    }
-    .step-label.active {
-        color: #1a1a1a;
-        font-weight: 500;
-    }
-    .step-divider {
-        width: 40px;
-        height: 1px;
-        background: #e5e5e5;
-    }
-
     /* ===== DATA LIMITATIONS ===== */
     .data-limits-banner {
         background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
@@ -921,16 +735,6 @@ if 'search_query' not in st.session_state:
 if 'selected_period' not in st.session_state:
     st.session_state.selected_period = "3개월"
 
-# Simulator states
-if 'sim_step' not in st.session_state:
-    st.session_state.sim_step = 1
-if 'sim_selected' not in st.session_state:
-    st.session_state.sim_selected = set()
-if 'sim_candidates' not in st.session_state:
-    st.session_state.sim_candidates = []
-if 'sim_from_keyword' not in st.session_state:
-    st.session_state.sim_from_keyword = None
-
 # Analysis options states
 if 'show_moving_average' not in st.session_state:
     st.session_state.show_moving_average = True
@@ -954,7 +758,7 @@ with st.sidebar:
     st.session_state.show_moving_average = st.checkbox(
         "이동 평균 표시",
         value=st.session_state.show_moving_average,
-        help="차트에 7일 이동 평균선을 함께 표시합니다"
+        help="차트에 이동 평균선을 함께 표시합니다"
     )
 
     if st.session_state.show_moving_average:
@@ -985,12 +789,21 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown("**📋 분석 정보**")
+    st.markdown("**📋 분석 옵션 설명**")
     st.markdown("""
-    <div style="font-size: 0.8rem; color: #64748b; line-height: 1.6;">
-    • <strong>이동 평균</strong>: 단기 변동을 완화하여 추세 파악<br>
-    • <strong>정규화</strong>: 키워드 간 상대적 비교 용이<br>
-    • <strong>상관 계수</strong>: Web-YouTube 간 연관성 측정
+    <div style="font-size: 0.8rem; color: #475569; line-height: 1.7; background: #f8fafc; padding: 0.75rem; border-radius: 6px;">
+    <strong style="color: #1e293b;">📈 이동 평균</strong><br>
+    <span style="color: #64748b;">일별 등락(노이즈)을 완화하여 <strong>전체 추세 방향</strong>을 파악합니다.<br>
+    → 단기 변동에 현혹되지 않고 진짜 흐름을 보고 싶을 때 사용</span>
+    <br><br>
+    <strong style="color: #1e293b;">📊 데이터 정규화</strong><br>
+    <span style="color: #64748b;">검색량 규모가 다른 키워드들의 <strong>변화 패턴</strong>을 비교합니다.<br>
+    → "A 키워드와 B 키워드 중 어느 쪽이 더 빠르게 성장하는가?"를 볼 때 사용</span>
+    <br><br>
+    <strong style="color: #1e293b;">🔗 상관 계수</strong><br>
+    <span style="color: #64748b;">Web 검색과 YouTube 검색이 <strong>함께 움직이는 정도</strong>를 측정합니다 (0~1).<br>
+    → 1에 가까울수록 "Web에서 관심이 올라가면 YouTube에서도 올라간다"는 의미<br>
+    → <strong>상관 계수가 높은 키워드 = 학습 수요로 전환될 가능성이 높음</strong></span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1010,18 +823,17 @@ def navigate_to(page, keyword=None):
         st.session_state.selected_keyword = keyword
     st.rerun()
 
-def start_simulator(from_keyword=None):
-    st.session_state.page = 'simulator'
-    st.session_state.sim_step = 1
-    st.session_state.sim_selected = set()
-    st.session_state.sim_from_keyword = from_keyword
-    st.session_state.sim_candidates = []
-    st.rerun()
-
 # --------------------------------------------------------------------------
 # 3. DATA LOADING (CACHED)
 # --------------------------------------------------------------------------
-@st.cache_data(ttl=3600)
+def load_mock_data_fast(timeframe='today 3-m'):
+    """Mock 데이터를 즉시 반환 (빠른 초기 로딩용)"""
+    web_df = get_mock_data(KEYWORDS, timeframe)
+    youtube_df = get_mock_youtube_data(KEYWORDS)
+    metrics = calculate_growth_metrics(web_df)
+    return web_df, metrics, youtube_df, True, True
+
+@st.cache_data(ttl=21600, show_spinner=False)  # 6시간 캐시
 def load_all_data(timeframe='today 3-m'):
     """웹 + YouTube 데이터를 병렬로 로드. (df, metrics, youtube_df, web_is_mock, youtube_is_mock) 반환"""
     # 병렬 로딩
@@ -1044,7 +856,7 @@ def load_all_data(timeframe='today 3-m'):
     metrics = calculate_growth_metrics(web_df)
     return web_df, metrics, youtube_df, web_is_mock, youtube_is_mock
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=21600, show_spinner=False)  # 6시간 캐시
 def load_data(timeframe='today 3-m'):
     """웹 검색 트렌드 데이터 로드. (df, metrics, is_mock) 반환"""
     df = fetch_trend_data(KEYWORDS, timeframe)
@@ -1055,11 +867,11 @@ def load_data(timeframe='today 3-m'):
     metrics = calculate_growth_metrics(df)
     return df, metrics, is_mock
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=21600, show_spinner=False)  # 6시간 캐시
 def load_related(keyword):
     return fetch_related_queries(keyword)
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=21600, show_spinner=False)  # 6시간 캐시
 def load_youtube_data(timeframe='today 3-m'):
     """YouTube 검색 트렌드 데이터 로드. (df, is_mock) 반환"""
     df = fetch_youtube_trend_data(KEYWORDS, timeframe)
@@ -1069,7 +881,7 @@ def load_youtube_data(timeframe='today 3-m'):
         is_mock = True
     return df, is_mock
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=21600, show_spinner=False)  # 6시간 캐시
 def load_cross_signals(timeframe='today 3-m'):
     """웹 + YouTube 교차 신호 분석 데이터 로드"""
     df, metrics, youtube_df, _, _ = load_all_data(timeframe)
@@ -1222,31 +1034,6 @@ def get_trend_label(growth):
         return "정체"
     else:
         return "하락"
-
-def render_simulator_cta():
-    st.markdown("""
-    <div class="simulator-cta">
-        <div class="simulator-cta-text">
-            <div class="simulator-cta-title">이 데이터로 강의 주제 선택해보기</div>
-            <div class="simulator-cta-desc">트렌드 데이터를 기반으로 기획 판단을 체험해보세요</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("시뮬레이션 시작 →", key="sim_cta_main", use_container_width=False):
-        start_simulator()
-
-def render_keyword_simulator_cta(keyword):
-    st.markdown(f"""
-    <div class="simulator-cta" style="margin-top: 2rem;">
-        <div class="simulator-cta-text">
-            <div class="simulator-cta-title">이 키워드, 강의로 만들 가치 있을까?</div>
-            <div class="simulator-cta-desc">'{keyword}'를 포함한 후보들과 비교하며 기획 판단을 체험해보세요</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("시뮬레이션 시작 →", key="sim_cta_detail", use_container_width=False):
-        start_simulator(from_keyword=keyword)
-
 
 def render_data_limitations_banner(collapsible=False):
     """데이터 한계 명시 배너"""
@@ -1846,10 +1633,23 @@ def page_dashboard():
     st.session_state.selected_period = period
 
     # Load Data (Web + YouTube 병렬 로딩)
-    with st.spinner("🔍 40개 이상의 교육 키워드 트렌드를 정밀하게 분석 중입니다... (약 5~10초 소요)"):
+    # 캐시된 데이터가 있으면 즉시 로드, 없으면 프로그레스 표시
+    loading_placeholder = st.empty()
+
+    try:
+        # 캐시 히트 시 빠르게 로드
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
-        # 데이터 업데이트 시점 기록
         st.session_state.last_data_update = datetime.now()
+    except Exception as e:
+        # 캐시 미스 또는 API 오류 시 Mock 데이터 사용
+        loading_placeholder.info("⏳ 데이터를 불러오는 중입니다... 잠시만 기다려주세요.")
+        try:
+            df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
+        except:
+            # 최후 수단: Mock 데이터 즉시 반환
+            df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_mock_data_fast(timeframe_map[period])
+        st.session_state.last_data_update = datetime.now()
+        loading_placeholder.empty()
 
     # Demo mode banner if using mock data
     render_demo_mode_banner(web_is_mock, youtube_is_mock)
@@ -1931,8 +1731,48 @@ def page_dashboard():
             with cols[3]:
                 st.markdown(f"<span class='keyword-action'>{action}</span>", unsafe_allow_html=True)
 
-    # === Simulator CTA (급상승 키워드 바로 아래) ===
-    render_simulator_cta()
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # === 상관계수 TOP 5 (학습 수요 전환 가능성) ===
+    st.markdown('<p class="section-title">강의 주제 추천</p>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">Web-YouTube 상관계수 TOP 5</h3>', unsafe_allow_html=True)
+    st.markdown(f'<p class="section-desc">Web 검색 관심이 YouTube 학습 수요로 전환될 가능성이 높은 키워드입니다. 상관계수가 1에 가까울수록 두 플랫폼이 함께 움직입니다.</p>', unsafe_allow_html=True)
+
+    # 상관계수 계산
+    correlations = calculate_correlation(df, youtube_df, list(metrics['키워드']))
+    corr_with_growth = []
+    for kw, corr in correlations.items():
+        if corr is not None:
+            growth_row = metrics[metrics['키워드'] == kw]
+            if not growth_row.empty:
+                growth = growth_row.iloc[0]['성장률(%)']
+                corr_with_growth.append({'키워드': kw, '상관계수': corr, '성장률': growth})
+
+    # 상관계수 기준 정렬 후 TOP 5
+    top_corr = sorted(corr_with_growth, key=lambda x: x['상관계수'], reverse=True)[:5]
+
+    if top_corr:
+        corr_cols = st.columns(5)
+        for idx, item in enumerate(top_corr):
+            kw = item['키워드']
+            corr = item['상관계수']
+            growth = item['성장률']
+            g_sign = "+" if growth > 0 else ""
+            corr_color = "#16a34a" if corr > 0.7 else "#f59e0b" if corr > 0.5 else "#64748b"
+
+            with corr_cols[idx]:
+                st.markdown(f"""
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; text-align: center;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">#{idx+1}</div>
+                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; font-size: 0.9rem;">{kw}</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: {corr_color};">{corr:.2f}</div>
+                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">성장률 {g_sign}{growth:.1f}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("상세보기", key=f"corr_detail_{idx}", use_container_width=True):
+                    navigate_to('detail', kw)
+    else:
+        st.info("상관계수 데이터를 계산할 수 없습니다.")
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -2171,9 +2011,6 @@ def page_detail():
     with i3:
         st.markdown(f"**리스크**<br><span style='color:#737373;'>{row['기획_리스크']}</span>", unsafe_allow_html=True)
 
-    # === Simulator CTA (키워드 상세 하단) ===
-    render_keyword_simulator_cta(kw)
-
     st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown('<p class="section-title">추가 분석</p>', unsafe_allow_html=True)
@@ -2380,7 +2217,111 @@ def page_report():
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ============================================
-    # 2. 우선순위 키워드 추천
+    # 2. 직감 vs 데이터 비교
+    # ============================================
+    st.markdown('<p class="section-title">기획 의사결정 도우미</p>', unsafe_allow_html=True)
+    st.markdown('<h3 class="section-heading">🤔 직감 vs 데이터 비교</h3>', unsafe_allow_html=True)
+    st.markdown('<p class="section-desc">당신이 선택한 키워드와 데이터 추천 키워드를 비교해보세요</p>', unsafe_allow_html=True)
+
+    # 데이터 기반 추천 TOP 3 계산 (상관계수 + 성장률 가중치)
+    correlations = strategic_insights['correlations']
+    data_scores = []
+    for _, row in metrics.iterrows():
+        kw = row['키워드']
+        growth = row['성장률(%)']
+        corr = correlations.get(kw, 0) or 0
+        # 종합 점수: 상관계수(60%) + 성장률 정규화(40%)
+        growth_norm = min(max(growth, -50), 100) / 100  # -50~100을 -0.5~1로
+        score = (corr * 0.6) + (growth_norm * 0.4)
+        data_scores.append({
+            'keyword': kw,
+            'score': score,
+            'growth': growth,
+            'correlation': corr
+        })
+
+    data_top3 = sorted(data_scores, key=lambda x: x['score'], reverse=True)[:3]
+
+    comp_col1, comp_col2 = st.columns(2)
+
+    with comp_col1:
+        st.markdown("**🧠 당신의 직감**")
+        st.markdown("<p style='font-size: 0.8rem; color: #64748b;'>강의 주제로 좋다고 생각하는 키워드를 선택하세요</p>", unsafe_allow_html=True)
+
+        user_choice = st.selectbox(
+            "키워드 선택",
+            options=["선택 안함"] + list(metrics['키워드']),
+            key="user_intuition_choice",
+            label_visibility="collapsed"
+        )
+
+        if user_choice != "선택 안함":
+            user_row = metrics[metrics['키워드'] == user_choice].iloc[0]
+            user_corr = correlations.get(user_choice, 0) or 0
+            user_growth = user_row['성장률(%)']
+            g_sign = "+" if user_growth > 0 else ""
+
+            st.markdown(f"""
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
+                <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">{user_choice}</div>
+                <div style="font-size: 0.85rem; color: #64748b;">
+                    성장률: <strong>{g_sign}{user_growth:.1f}%</strong><br>
+                    상관계수: <strong>{user_corr:.2f}</strong><br>
+                    시장 단계: <strong>{user_row['진단유형']}</strong>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with comp_col2:
+        st.markdown("**📊 데이터 추천 TOP 3**")
+        st.markdown("<p style='font-size: 0.8rem; color: #64748b;'>상관계수 + 성장률 기반 종합 점수</p>", unsafe_allow_html=True)
+
+        for idx, item in enumerate(data_top3):
+            g_sign = "+" if item['growth'] > 0 else ""
+            highlight = "border-left: 3px solid #16a34a;" if user_choice == item['keyword'] else ""
+            st.markdown(f"""
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; {highlight}">
+                <div style="font-weight: 600; color: #166534;">#{idx+1} {item['keyword']}</div>
+                <div style="font-size: 0.8rem; color: #15803d;">
+                    성장률 {g_sign}{item['growth']:.1f}% · 상관계수 {item['correlation']:.2f}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # 비교 결과
+    if user_choice != "선택 안함":
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("**📋 비교 결과**")
+
+        user_rank = next((idx + 1 for idx, item in enumerate(sorted(data_scores, key=lambda x: x['score'], reverse=True)) if item['keyword'] == user_choice), None)
+        is_in_top3 = user_choice in [item['keyword'] for item in data_top3]
+        user_corr = correlations.get(user_choice, 0) or 0
+
+        if is_in_top3:
+            st.success(f"✅ **'{user_choice}'는 데이터 추천 TOP 3에 포함됩니다!** 직감과 데이터가 일치합니다.")
+        else:
+            top1 = data_top3[0]
+            if user_corr < 0.4:
+                st.warning(f"""
+                ⚠️ **'{user_choice}'의 상관계수({user_corr:.2f})가 낮습니다.**
+                Web 검색이 YouTube 학습 수요로 전환될 가능성이 낮을 수 있습니다.
+                데이터 추천 1위 **'{top1['keyword']}'** (상관계수: {top1['correlation']:.2f})와 비교해 보세요.
+                """)
+            elif user_growth < 0:
+                st.warning(f"""
+                ⚠️ **'{user_choice}'의 성장률({user_growth:.1f}%)이 마이너스입니다.**
+                하락 추세의 키워드입니다. 신중한 검토가 필요합니다.
+                """)
+            else:
+                st.info(f"""
+                ℹ️ **'{user_choice}'는 종합 순위 {user_rank}위입니다.**
+                데이터 추천 1위 **'{top1['keyword']}'**와 비교: 상관계수 {top1['correlation']:.2f} vs {user_corr:.2f}
+                """)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ============================================
+    # 3. 우선순위 키워드 추천
     # ============================================
     st.markdown('<p class="section-title">우선순위 키워드</p>', unsafe_allow_html=True)
     st.markdown('<h3 class="section-heading">🎯 기획 추천 키워드</h3>', unsafe_allow_html=True)
@@ -2592,233 +2533,6 @@ def page_report():
 
 
 # --------------------------------------------------------------------------
-# 6. SIMULATOR PAGE
-# --------------------------------------------------------------------------
-def page_simulator():
-    # Header
-    c1, c2 = st.columns([1, 5])
-    with c1:
-        if st.button("← 대시보드", width='stretch'):
-            st.session_state.sim_step = 1
-            st.session_state.sim_selected = set()
-            navigate_to('dashboard')
-
-    # Load Data
-    with st.spinner(""):
-        df, metrics, _ = load_data("today 3-m")
-
-    # Generate candidates if needed
-    if not st.session_state.sim_candidates:
-        sorted_metrics = metrics.sort_values('성장률(%)', ascending=False)
-        candidates = []
-
-        # If from keyword detail, include that keyword
-        if st.session_state.sim_from_keyword and st.session_state.sim_from_keyword in sorted_metrics['키워드'].values:
-            kw_row = sorted_metrics[sorted_metrics['키워드'] == st.session_state.sim_from_keyword].iloc[0]
-            candidates.append(kw_row)
-
-        # Add top keywords
-        for _, row in sorted_metrics.iterrows():
-            if len(candidates) >= 5:
-                break
-            if row['키워드'] not in [c['키워드'] for c in candidates]:
-                candidates.append(row)
-
-        # Shuffle for variety (but keep order somewhat meaningful)
-        if len(candidates) > 3:
-            mid = candidates[1:-1]
-            random.shuffle(mid)
-            candidates = [candidates[0]] + mid + [candidates[-1]]
-
-        st.session_state.sim_candidates = candidates
-
-    candidates = st.session_state.sim_candidates
-
-    # Step Indicator
-    step = st.session_state.sim_step
-    st.markdown(f"""
-    <div class="step-indicator">
-        <div class="step-item">
-            <div class="step-number {'completed' if step > 1 else 'active' if step == 1 else 'inactive'}">{'✓' if step > 1 else '1'}</div>
-            <span class="step-label {'active' if step == 1 else ''}">소개</span>
-        </div>
-        <div class="step-divider"></div>
-        <div class="step-item">
-            <div class="step-number {'completed' if step > 2 else 'active' if step == 2 else 'inactive'}">{'✓' if step > 2 else '2'}</div>
-            <span class="step-label {'active' if step == 2 else ''}">주제 선택</span>
-        </div>
-        <div class="step-divider"></div>
-        <div class="step-item">
-            <div class="step-number {'active' if step == 3 else 'inactive'}">3</div>
-            <span class="step-label {'active' if step == 3 else ''}">결과 리포트</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # STEP 1: Introduction
-    if step == 1:
-        st.markdown('<h2 class="section-heading">강의 주제 선택 시뮬레이션</h2>', unsafe_allow_html=True)
-        st.markdown("""
-        <p class="section-desc" style="font-size: 1rem; line-height: 1.8; max-width: 600px;">
-            트렌드 데이터를 기반으로, 제한된 선택 안에서 다음 강의 주제를 선택해보세요.<br><br>
-            5개의 교육 키워드 후보 중 <strong>최대 2개</strong>를 선택하고,<br>
-            선택에 대한 기획 판단 리포트를 확인할 수 있습니다.
-        </p>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        if st.button("시작하기 →", use_container_width=False):
-            st.session_state.sim_step = 2
-            st.rerun()
-
-    # STEP 2: Selection
-    elif step == 2:
-        st.markdown('<h2 class="section-heading">강의 주제 후보</h2>', unsafe_allow_html=True)
-        st.markdown('<p class="section-desc">최대 2개의 키워드를 선택하세요. 선택 후 결과 리포트를 생성합니다.</p>', unsafe_allow_html=True)
-
-        selected = st.session_state.sim_selected
-
-        # Warning if over limit
-        if len(selected) >= 2:
-            st.info("최대 2개까지만 선택할 수 있습니다. 다른 키워드를 선택하려면 먼저 선택을 해제하세요.")
-
-        # Candidate Cards
-        cols = st.columns(5)
-        for idx, cand in enumerate(candidates):
-            kw = cand['키워드']
-            growth = cand['성장률(%)']
-            trend = get_trend_label(growth)
-            is_selected = kw in selected
-
-            growth_class = "positive" if growth > 10 else "negative" if growth < -5 else "neutral"
-            g_sign = "+" if growth > 0 else ""
-
-            with cols[idx]:
-                card_class = "selected" if is_selected else ""
-                st.markdown(f"""<div class="sim-card {card_class}" style="position: relative;">
-{'<div class="sim-card-check">✓</div>' if is_selected else ''}
-<div class="sim-card-keyword">{kw}</div>
-<div class="sim-card-growth {growth_class}">{g_sign}{growth:.1f}%</div>
-<div class="sim-card-trend">{trend}</div>
-</div>""", unsafe_allow_html=True)
-
-                # Toggle button
-                btn_label = "선택 해제" if is_selected else "선택"
-                btn_disabled = len(selected) >= 2 and not is_selected
-
-                if st.button(btn_label, key=f"sim_sel_{idx}", disabled=btn_disabled, use_container_width=True):
-                    if is_selected:
-                        st.session_state.sim_selected.remove(kw)
-                    else:
-                        st.session_state.sim_selected.add(kw)
-                    st.rerun()
-
-        st.markdown("<br><br>", unsafe_allow_html=True)
-
-        # Selection summary
-        if selected:
-            st.markdown(f"**선택된 키워드:** {', '.join(selected)}")
-
-        # Submit button
-        col_btn1, col_btn2, col_btn3 = st.columns([2, 1, 2])
-        with col_btn2:
-            if st.button("결과 확인 →", disabled=len(selected) == 0, use_container_width=True):
-                st.session_state.sim_step = 3
-                st.rerun()
-
-    # STEP 3: Report
-    elif step == 3:
-        st.markdown('<h2 class="section-heading">기획 판단 리포트</h2>', unsafe_allow_html=True)
-
-        selected = list(st.session_state.sim_selected)
-        selected_data = [c for c in candidates if c['키워드'] in selected]
-
-        # 데이터 준비
-        avg_growth = sum(d['성장률(%)'] for d in selected_data) / len(selected_data) if selected_data else 0
-
-        # 선택한 키워드 HTML 생성
-        keywords_html = ""
-        for data in selected_data:
-            kw = data['키워드']
-            growth = data['성장률(%)']
-            g_sign = "+" if growth > 0 else ""
-            keywords_html += f"<div style='margin-bottom: 0.5rem;'>• <strong>{kw}</strong> — 성장률 {g_sign}{growth:.1f}%</div>"
-
-        # 판단 근거 생성
-        rationale_parts = []
-        if avg_growth > 20:
-            rationale_parts.append(f"선택한 키워드는 평균 {avg_growth:.1f}%의 높은 성장률을 보이고 있어 시장 관심이 급증하는 주제입니다.")
-        elif avg_growth > 10:
-            rationale_parts.append(f"선택한 키워드는 평균 {avg_growth:.1f}%의 안정적인 성장률을 보이며, 지속적인 관심이 확인됩니다.")
-        elif avg_growth > 0:
-            rationale_parts.append(f"선택한 키워드는 평균 {avg_growth:.1f}%의 완만한 성장세를 보이고 있습니다.")
-        else:
-            rationale_parts.append(f"선택한 키워드는 현재 성장률이 {avg_growth:.1f}%로 정체 또는 하락 추세입니다.")
-
-        edu_terms = ['교육', '강의', '입문', '기초', '자격증', '튜토리얼']
-        has_edu_context = any(any(term in str(d['키워드']) for term in edu_terms) for d in selected_data)
-
-        if has_edu_context:
-            rationale_parts.append("키워드에 교육/학습 의도가 포함되어 있어 강의 콘텐츠로의 전환 가능성이 높습니다.")
-        else:
-            rationale_parts.append("일반 검색 키워드로, 교육 콘텐츠 수요로 직접 연결되는지는 추가 검증이 필요합니다.")
-
-        rationale_text = " ".join(rationale_parts)
-
-        # 리스크 생성
-        risks = []
-        for data in selected_data:
-            if data['변동성'] == '높음':
-                risks.append(f"'{data['키워드']}'는 변동성이 높아 일시적 트렌드일 가능성이 있습니다.")
-            if data['성장률(%)'] > 50:
-                risks.append(f"'{data['키워드']}'의 급격한 성장은 단기 이슈에 의한 것일 수 있어 지속성 검토가 필요합니다.")
-
-        if not risks:
-            risks.append("선택한 키워드는 비교적 안정적인 지표를 보이나, 실제 교육 수요와의 연관성은 별도 검증이 권장됩니다.")
-
-        risks_text = " ".join(risks)
-
-        # 전체 리포트 HTML (인라인 스타일로 렌더링 보장)
-        report_html = f"""
-<div style="background: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 2rem; margin-top: 1rem;">
-    <div style="font-size: 1.25rem; font-weight: 700; color: #1a1a1a; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e5e5;">
-        선택 결과 요약
-    </div>
-    <div style="margin-bottom: 1.5rem;">
-        <div style="font-size: 0.9rem; font-weight: 600; color: #6366f1; margin-bottom: 0.5rem;">선택한 키워드</div>
-        {keywords_html}
-    </div>
-    <div style="margin-bottom: 1.5rem;">
-        <div style="font-size: 0.9rem; font-weight: 600; color: #6366f1; margin-bottom: 0.5rem;">판단 근거</div>
-        <p style="font-size: 0.95rem; color: #374151; line-height: 1.7; margin: 0;">{rationale_text}</p>
-    </div>
-    <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
-        <div style="font-size: 0.85rem; font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">리스크 & 고려사항</div>
-        <p style="font-size: 0.9rem; color: #78350f; margin: 0; line-height: 1.6;">{risks_text}</p>
-    </div>
-</div>
-"""
-        st.markdown(report_html, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Action buttons
-        col1, col2, col3 = st.columns([1, 1, 2])
-        with col1:
-            if st.button("다시 선택하기", use_container_width=True):
-                st.session_state.sim_step = 2
-                st.session_state.sim_selected = set()
-                st.rerun()
-        with col2:
-            if st.button("대시보드로", use_container_width=True):
-                st.session_state.sim_step = 1
-                st.session_state.sim_selected = set()
-                st.session_state.sim_candidates = []
-                navigate_to('dashboard')
-
-
-# --------------------------------------------------------------------------
 # MAIN ROUTER
 # --------------------------------------------------------------------------
 render_header()
@@ -2834,8 +2548,6 @@ elif st.session_state.page == 'compare':
     page_compare()
 elif st.session_state.page == 'report':
     page_report()
-elif st.session_state.page == 'simulator':
-    page_simulator()
 
 # 글로벌 Footer (데이터 출처 및 업데이트 시점)
 last_update = st.session_state.get('last_data_update')
