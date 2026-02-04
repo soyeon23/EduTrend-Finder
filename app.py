@@ -1641,14 +1641,12 @@ def page_dashboard():
         df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
         st.session_state.last_data_update = datetime.now()
     except Exception as e:
-        # 캐시 미스 또는 API 오류 시 Mock 데이터 사용
-        loading_placeholder.info("⏳ 데이터를 불러오는 중입니다... 잠시만 기다려주세요.")
-        try:
-            df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_all_data(timeframe_map[period])
-        except:
-            # 최후 수단: Mock 데이터 즉시 반환
-            df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_mock_data_fast(timeframe_map[period])
+        # 에러 발생 시 (429 등) Mock 데이터 즉시 반환
+        loading_placeholder.info("⏳ 데이터 수집 요청이 많아 데모 모드로 전환합니다.")
+        df, metrics, youtube_df, web_is_mock, youtube_is_mock = load_mock_data_fast(timeframe_map[period])
         st.session_state.last_data_update = datetime.now()
+        # 이미 Mock로 로드되었으므로 안내 메시지 표시 후 잠시 대기
+        time.sleep(1)
         loading_placeholder.empty()
 
     # Demo mode banner if using mock data

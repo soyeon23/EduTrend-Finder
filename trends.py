@@ -374,13 +374,18 @@ def fetch_multi_signal_data(keywords, timeframe='today 3-m'):
 
     # 병렬 실행 (동시성 2로 제한하여 Rate Limit 방지)
     with ThreadPoolExecutor(max_workers=2) as executor:
-        web_future = executor.submit(fetch_web)
-        # YouTube는 상당 수준의 시차를 두고 시작하여 구글 서버의 요청 밀집 방지
-        time.sleep(2.0)
-        youtube_future = executor.submit(fetch_youtube)
+        try:
+            web_future = executor.submit(fetch_web)
+            # YouTube는 상당 수준의 시차를 두고 시작하여 구글 서버의 요청 밀집 방지
+            time.sleep(2.0)
+            youtube_future = executor.submit(fetch_youtube)
 
-        results['web'] = web_future.result()
-        results['youtube'] = youtube_future.result()
+            results['web'] = web_future.result(timeout=30)
+            results['youtube'] = youtube_future.result(timeout=30)
+        except Exception as e:
+            print(f"Error in parallel data fetching: {e}")
+            # 개별 결과가 이미 비어있는 DataFrame으로 초기화되어 있음
+            pass
 
     return results
 
