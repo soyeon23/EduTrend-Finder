@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduTrend Academy</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      transition: background 0.3s;
+    }
+
+    .nav-links a:hover, .nav-links a.active {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .cart-badge {
+      background: #ff4757;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      margin-left: 5px;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    /* Products Grid */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .product-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
+
+    .product-info {
+      padding: 1.2rem;
+    }
+
+    .product-info h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .product-info p {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .product-price {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      padding: 0.7rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      flex: 1;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: scale(1.02);
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    /* Cart Section */
+    .cart-item {
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .cart-item img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .quantity-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quantity-controls button {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border-radius: 50%;
+    }
+
+    .cart-summary {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 2rem;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+    }
+
+    .cart-total {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+
+    /* Order Form */
+    .order-form {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 500px;
+      margin: 0 auto;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.8rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    /* Success Message */
+    .success-message {
+      text-align: center;
+      padding: 3rem;
+    }
+
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      font-size: 2.5rem;
+      color: white;
+    }
+
+    /* Auth Section */
+    .auth-form {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: 0 auto;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+    }
+
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      border-bottom: 2px solid #e0e0e0;
+      transition: all 0.3s;
+    }
+
+    .auth-tab.active {
+      border-bottom-color: #667eea;
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .empty-cart {
+      text-align: center;
+      padding: 3rem;
+      color: #999;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: #333;
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>EduTrend Academy</h1>
+    <p>Online Learning Platform</p>
+    <nav class="nav-links">
+      <a href="#" data-section="products" class="active">강의</a>
+      <a href="#" data-section="cart">장바구니 <span class="cart-badge" id="cartCount">0</span></a>
+      <a href="#" data-section="orders">수강내역</a>
+      <a href="#" data-section="auth" id="authLink">로그인</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Products Section -->
+    <section id="products" class="section active">
+      <h2 style="margin-bottom: 1.5rem;">강의 목록</h2>
+      <div class="products-grid" id="productsGrid">
+        <div class="loading">강의를 불러오는 중...</div>
+      </div>
+    </section>
+
+    <!-- Cart Section -->
+    <section id="cart" class="section">
+      <h2 style="margin-bottom: 1.5rem;">장바구니</h2>
+      <div id="cartItems"></div>
+      <div class="cart-summary" id="cartSummary" style="display: none;">
+        <h3>주문 요약</h3>
+        <div class="cart-total" id="cartTotal"></div>
+        <button class="btn-primary" style="width: 100%;" onclick="showCheckout()">주문하기</button>
+      </div>
+    </section>
+
+    <!-- Checkout Section -->
+    <section id="checkout" class="section">
+      <div class="order-form">
+        <h2 style="margin-bottom: 1.5rem; text-align: center;">주문 정보 입력</h2>
+        <form id="checkoutForm">
+          <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="customerName" required placeholder="홍길동">
+          </div>
+          <div class="form-group">
+            <label>이메일</label>
+            <input type="email" id="customerEmail" required placeholder="example@email.com">
+          </div>
+          <div class="form-group">
+            <label>전화번호</label>
+            <input type="tel" id="customerPhone" required placeholder="010-1234-5678">
+          </div>
+          <div id="orderSummary" style="background: #f5f5f5; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;"></div>
+          <button type="submit" class="btn-primary" style="width: 100%;">결제하기</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Order Success Section -->
+    <section id="success" class="section">
+      <div class="success-message">
+        <div class="success-icon">✓</div>
+        <h2>수강신청이 완료되었습니다!</h2>
+        <p style="color: #666; margin: 1rem 0;">주문번호: <strong id="orderNumber"></strong></p>
+        <p style="color: #666; margin-bottom: 2rem;">확인 이메일을 발송해드렸습니다.</p>
+        <button class="btn-primary" onclick="showSection('products')">다른 강의 둘러보기</button>
+      </div>
+    </section>
+
+    <!-- Orders Section -->
+    <section id="orders" class="section">
+      <h2 style="margin-bottom: 1.5rem;">수강 내역</h2>
+      <div id="ordersList">
+        <div class="loading">수강 내역을 불러오는 중...</div>
+      </div>
+    </section>
+
+    <!-- Auth Section -->
+    <section id="auth" class="section">
+      <div class="auth-form">
+        <div class="auth-tabs">
+          <div class="auth-tab active" onclick="showAuthTab('login')">로그인</div>
+          <div class="auth-tab" onclick="showAuthTab('register')">회원가입</div>
+        </div>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <label>이메일</label>
+            <input type="email" id="loginEmail" required>
+          </div>
+          <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="loginName" required>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%;">로그인</button>
+        </form>
+
+        <form id="registerForm" style="display: none;">
+          <div class="form-group">
+            <label>이메일</label>
+            <input type="email" id="registerEmail" required>
+          </div>
+          <div class="form-group">
+            <label>이름</label>
+            <input type="text" id="registerName" required>
+          </div>
+          <div class="form-group">
+            <label>전화번호</label>
+            <input type="tel" id="registerPhone">
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%;">회원가입</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Supabase 초기화 (변수명 'sb' 사용)
+    const SUPABASE_URL = 'https://lqocvqwbmjrzplxmqcvd.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxxb2N2cXdibWpyenBseG1xY3ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyNDExMTUsImV4cCI6MjA4NTgxNzExNX0.L-Hpk41SqYnvAcjMM5raLS3EtLSBiDx7O1q8GMBh__g';
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 상태 관리
+    let products = [];
+    let cart = [];
+    let currentUser = null;
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadProducts();
+      loadCartFromStorage();
+      updateCartCount();
+
+      // 네비게이션 이벤트
+      document.querySelectorAll('.nav-links a').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const section = e.target.dataset.section;
+          if (section) showSection(section);
+        });
+      });
+
+      // 폼 이벤트
+      document.getElementById('checkoutForm').addEventListener('submit', handleCheckout);
+      document.getElementById('loginForm').addEventListener('submit', handleLogin);
+      document.getElementById('registerForm').addEventListener('submit', handleRegister);
+    });
+
+    // 강의 로드
+    async function loadProducts() {
+      try {
+        const { data, error } = await sb
+          .from('courses')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        products = data;
+        renderProducts();
+      } catch (error) {
+        console.error('강의 로드 에러:', error);
+        document.getElementById('productsGrid').innerHTML =
+          '<p style="color: red;">강의를 불러오는데 실패했습니다. 콘솔(F12)을 확인하세요.</p>';
+      }
+    }
+
+    // 상품 렌더링
+    function renderProducts() {
+      const grid = document.getElementById('productsGrid');
+      grid.innerHTML = products.map(product => `
+        <div class="product-card">
+          <img src="${product.image_url}" alt="${product.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+          <div class="product-info">
+            <h3>${product.name}</h3>
+            <p>${product.description}</p>
+            <div class="product-price">${formatPrice(product.price)}</div>
+            <div class="product-actions">
+              <button class="btn-primary" onclick="addToCart('${product.id}')">수강신청</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 장바구니에 추가
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      const existingItem = cart.find(item => item.product_id === productId);
+      if (existingItem) {
+        existingItem.quantity++;
+      } else {
+        cart.push({
+          product_id: productId,
+          product: product,
+          quantity: 1
+        });
+      }
+
+      saveCartToStorage();
+      updateCartCount();
+      showToast('수강바구니에 추가되었습니다!', 'success');
+    }
+
+    // 장바구니 렌더링
+    function renderCart() {
+      const cartItems = document.getElementById('cartItems');
+      const cartSummary = document.getElementById('cartSummary');
+
+      if (cart.length === 0) {
+        cartItems.innerHTML = '<div class="empty-cart"><h3>장바구니가 비어있습니다</h3><p>강의를 추가해주세요.</p></div>';
+        cartSummary.style.display = 'none';
+        return;
+      }
+
+      cartItems.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <img src="${item.product.image_url}" alt="${item.product.name}">
+          <div class="cart-item-info">
+            <h4>${item.product.name}</h4>
+            <p>${formatPrice(item.product.price)}</p>
+          </div>
+          <div class="quantity-controls">
+            <button class="btn-secondary" onclick="updateQuantity('${item.product_id}', -1)">-</button>
+            <span>${item.quantity}</span>
+            <button class="btn-secondary" onclick="updateQuantity('${item.product_id}', 1)">+</button>
+          </div>
+          <button class="btn-secondary" onclick="removeFromCart('${item.product_id}')" style="color: #ff4757;">✕</button>
+        </div>
+      `).join('');
+
+      const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+      document.getElementById('cartTotal').textContent = `총 금액: ${formatPrice(total)}`;
+      cartSummary.style.display = 'block';
+    }
+
+    // 수량 업데이트
+    function updateQuantity(productId, delta) {
+      const item = cart.find(i => i.product_id === productId);
+      if (!item) return;
+
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        removeFromCart(productId);
+      } else {
+        saveCartToStorage();
+        renderCart();
+        updateCartCount();
+      }
+    }
+
+    // 장바구니에서 제거
+    function removeFromCart(productId) {
+      cart = cart.filter(item => item.product_id !== productId);
+      saveCartToStorage();
+      renderCart();
+      updateCartCount();
+    }
+
+    // 결제 처리
+    async function handleCheckout(e) {
+      e.preventDefault();
+
+      const name = document.getElementById('customerName').value;
+      const email = document.getElementById('customerEmail').value;
+      const phone = document.getElementById('customerPhone').value;
+
+      try {
+        // 1. 학습자 생성/조회
+        let { data: existingStudent } = await sb
+          .from('students')
+          .select('*')
+          .eq('email', email)
+          .single();
+
+        let studentId;
+        if (existingStudent) {
+          studentId = existingStudent.id;
+        } else {
+          const { data: newStudent, error: studentError } = await sb
+            .from('students')
+            .insert({ email, name, phone })
+            .select()
+            .single();
+
+          if (studentError) throw studentError;
+          studentId = newStudent.id;
+        }
+
+        // 2. 구매 생성
+        const totalAmount = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
+        const { data: purchase, error: purchaseError } = await sb
+          .from('purchases')
+          .insert({
+            student_id: studentId,
+            total_amount: totalAmount,
+            status: 'pending'
+          })
+          .select()
+          .single();
+
+        if (purchaseError) throw purchaseError;
+
+        // 3. 구매 상세 생성
+        const purchaseItems = cart.map(item => ({
+          purchase_id: purchase.id,
+          course_id: item.product_id,
+          quantity: item.quantity,
+          price: item.product.price
+        }));
+
+        const { error: itemsError } = await sb
+          .from('purchase_items')
+          .insert(purchaseItems);
+
+        if (itemsError) throw itemsError;
+
+        // 4. 수강 등록
+        const enrollments = cart.map(item => ({
+          student_id: studentId,
+          course_id: item.product_id
+        }));
+
+        await sb.from('enrollments').upsert(enrollments, { onConflict: 'student_id,course_id' });
+
+        // 5. 성공 처리
+        cart = [];
+        saveCartToStorage();
+        updateCartCount();
+
+        document.getElementById('orderNumber').textContent = purchase.id.substring(0, 8).toUpperCase();
+        showSection('success');
+
+      } catch (error) {
+        console.error('결제 처리 에러:', error);
+        showToast('결제 처리 중 오류가 발생했습니다. 콘솔(F12)을 확인하세요.', 'error');
+      }
+    }
+
+    // 수강 내역 로드
+    async function loadOrders() {
+      const ordersList = document.getElementById('ordersList');
+
+      try {
+        const { data: purchases, error } = await sb
+          .from('purchases')
+          .select(`
+            *,
+            students (name, email),
+            purchase_items (
+              quantity,
+              price,
+              courses (name)
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (purchases.length === 0) {
+          ordersList.innerHTML = '<div class="empty-cart"><h3>수강 내역이 없습니다</h3></div>';
+          return;
+        }
+
+        ordersList.innerHTML = purchases.map(purchase => `
+          <div class="cart-item" style="flex-direction: column; align-items: flex-start;">
+            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 0.5rem;">
+              <strong>주문번호: ${purchase.id.substring(0, 8).toUpperCase()}</strong>
+              <span style="color: #666;">${new Date(purchase.created_at).toLocaleDateString('ko-KR')}</span>
+            </div>
+            <div style="color: #666; font-size: 0.9rem; margin-bottom: 0.5rem;">
+              ${purchase.purchase_items.map(item => `${item.courses?.name || '강의'} x ${item.quantity}`).join(', ')}
+            </div>
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <span style="background: ${purchase.status === 'pending' ? '#ffeaa7' : '#55efc4'}; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
+                ${purchase.status === 'pending' ? '처리중' : '완료'}
+              </span>
+              <strong style="color: #667eea;">${formatPrice(purchase.total_amount)}</strong>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (error) {
+        console.error('수강 내역 로드 에러:', error);
+        ordersList.innerHTML = '<p style="color: red;">수강 내역을 불러오는데 실패했습니다.</p>';
+      }
+    }
+
+    // 로그인 처리
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const name = document.getElementById('loginName').value;
+
+      try {
+        let { data: student } = await sb
+          .from('students')
+          .select('*')
+          .eq('email', email)
+          .single();
+
+        if (!student) {
+          showToast('등록되지 않은 학습자입니다. 회원가입해주세요.', 'error');
+          return;
+        }
+
+        currentUser = student;
+        document.getElementById('authLink').textContent = student.name;
+        showToast(`${student.name}님 환영합니다!`, 'success');
+        showSection('products');
+
+      } catch (error) {
+        console.error('로그인 에러:', error);
+      }
+    }
+
+    // 회원가입 처리
+    async function handleRegister(e) {
+      e.preventDefault();
+      const email = document.getElementById('registerEmail').value;
+      const name = document.getElementById('registerName').value;
+      const phone = document.getElementById('registerPhone').value;
+
+      try {
+        const { data: student, error } = await sb
+          .from('students')
+          .insert({ email, name, phone })
+          .select()
+          .single();
+
+        if (error) {
+          if (error.code === '23505') {
+            showToast('이미 등록된 이메일입니다.', 'error');
+          } else {
+            throw error;
+          }
+          return;
+        }
+
+        currentUser = student;
+        document.getElementById('authLink').textContent = student.name;
+        showToast('회원가입이 완료되었습니다!', 'success');
+        showSection('products');
+
+      } catch (error) {
+        console.error('회원가입 에러:', error);
+        showToast('회원가입 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    // UI 헬퍼 함수들
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+
+      document.getElementById(sectionId).classList.add('active');
+      const navLink = document.querySelector(`.nav-links a[data-section="${sectionId}"]`);
+      if (navLink) navLink.classList.add('active');
+
+      if (sectionId === 'cart') renderCart();
+      if (sectionId === 'orders') loadOrders();
+    }
+
+    function showCheckout() {
+      const summary = document.getElementById('orderSummary');
+      const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
+      summary.innerHTML = `
+        <h4 style="margin-bottom: 0.5rem;">수강 강의</h4>
+        ${cart.map(item => `<p>${item.product.name} x ${item.quantity}</p>`).join('')}
+        <hr style="margin: 0.5rem 0;">
+        <strong>총 금액: ${formatPrice(total)}</strong>
+      `;
+
+      showSection('checkout');
+    }
+
+    function showAuthTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.auth-tab:${tab === 'login' ? 'first-child' : 'last-child'}`).classList.add('active');
+
+      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+    }
+
+    function updateCartCount() {
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cartCount').textContent = count;
+    }
+
+    function formatPrice(price) {
+      return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(price);
+    }
+
+    function showToast(message, type = '') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast show ' + type;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function saveCartToStorage() {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+    function loadCartFromStorage() {
+      const saved = localStorage.getItem('cart');
+      if (saved) {
+        cart = JSON.parse(saved);
+      }
+    }
+  </script>
+</body>
+</html>
