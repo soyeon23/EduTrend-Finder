@@ -45,8 +45,8 @@ st.markdown("""
     /* ===== HERO ===== */
     .hero-container {
         padding: 6rem 1rem;
-        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
-        border-radius: 30px; 
+        background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 50%, #3d3d3d 100%);
+        border-radius: 30px;
         margin-bottom: 4rem;
         text-align: center;
         position: relative;
@@ -57,8 +57,8 @@ st.markdown("""
         content: "";
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: url('https://www.transparenttextures.com/patterns/cubes.png');
-        opacity: 0.05;
+        background: none;
+        opacity: 0;
         pointer-events: none;
     }
     .hero-title {
@@ -92,7 +92,7 @@ st.markdown("""
     }
     .hero-subtitle-text {
         font-size: 1rem;
-        color: #e0e7ff;
+        color: rgba(255, 255, 255, 0.7);
         font-weight: 500;
         text-align: center;
     }
@@ -123,33 +123,41 @@ st.markdown("""
         justify-content: space-between;
     }
     .home-nav-card:hover {
-        border-color: #6366f1;
-        box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+        border-color: #374151;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
         transform: translateY(-4px);
     }
     .home-nav-card .stButton {
         margin-top: 0.5rem;
     }
     .home-nav-card button {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
         color: white !important;
         border: none !important;
         padding: 0.9rem 1.5rem !important;
         border-radius: 10px !important;
         font-size: 1rem !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3) !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
         cursor: pointer !important;
         transition: all 0.3s ease !important;
     }
     .home-nav-card button:hover {
-        background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
-        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
+        background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
         transform: translateY(-2px) !important;
     }
     .home-card-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.75rem;
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 0.75rem auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .home-card-icon svg {
+        width: 100%;
+        height: 100%;
     }
     .home-card-title {
         font-size: 1.1rem;
@@ -189,15 +197,17 @@ st.markdown("""
         box-shadow: 0 30px 60px rgba(0,0,0,0.3);
     }
     .use-case-icon {
-        width: 56px;
-        height: 56px;
-        background: #fdf2f8;
-        border-radius: 14px;
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.8rem;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .use-case-icon svg {
+        width: 100%;
+        height: 100%;
     }
     .use-case-text {
         font-size: 1.15rem;
@@ -380,7 +390,7 @@ st.markdown("""
     }
     
     .nav-card-wrapper .stButton button:hover {
-        background: rgba(99, 102, 241, 0.05) !important;
+        background: rgba(0, 0, 0, 0.03) !important;
     }
 
     /* Header Logo Styles */
@@ -395,9 +405,9 @@ st.markdown("""
     .logo-icon {
         width: 36px;
         height: 36px;
-        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        background: linear-gradient(135deg, #1f2937, #374151);
         border-radius: 9px;
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
     .logo-text {
         color: #000000;
@@ -457,7 +467,7 @@ st.markdown("""
     .nav-card-wrapper:hover .home-sim-card {
         transform: translateY(-10px);
         box-shadow: 0 30px 60px rgba(0,0,0,0.12) !important;
-        border-color: #6366f1 !important;
+        border-color: #374151 !important;
     }
 
     /* ===== FOOTER ===== */
@@ -1549,15 +1559,42 @@ def page_home():
         </div>
         <div class="use-cases">
             <div class="use-case-item">
-                <div class="use-case-icon">💡</div>
+                <div class="use-case-icon">
+                    <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="36" cy="36" r="32" fill="#FFF9E6"/>
+                        <path d="M36 14c-9.941 0-18 8.059-18 18 0 6.462 3.406 12.126 8.518 15.304.792.492 1.382 1.292 1.382 2.246v4.05h16.2v-4.05c0-.954.59-1.754 1.382-2.246C50.594 44.126 54 38.462 54 32c0-9.941-8.059-18-18-18z" fill="#FFD93D"/>
+                        <path d="M36 14c-9.941 0-18 8.059-18 18 0 6.462 3.406 12.126 8.518 15.304" stroke="#E6B800" stroke-width="2" stroke-linecap="round"/>
+                        <rect x="28" y="54" width="16" height="4" rx="2" fill="#4A4A4A"/>
+                        <rect x="30" y="58" width="12" height="3" rx="1.5" fill="#4A4A4A"/>
+                        <path d="M36 22v7M32.5 29h7" stroke="#FFF" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
                 <div class="use-case-text">지금 강의로 만들면<br>반응이 있을 주제일까요?</div>
             </div>
             <div class="use-case-item">
-                <div class="use-case-icon">📈</div>
+                <div class="use-case-icon">
+                    <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="36" cy="36" r="32" fill="#E8F4FD"/>
+                        <rect x="16" y="44" width="9" height="14" rx="2" fill="#90CAF9"/>
+                        <rect x="31.5" y="34" width="9" height="24" rx="2" fill="#64B5F6"/>
+                        <rect x="47" y="22" width="9" height="36" rx="2" fill="#42A5F5"/>
+                        <path d="M18 38l13.5-10.5 13.5 5.25L58 20" stroke="#1E88E5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="58" cy="20" r="3.5" fill="#1E88E5"/>
+                    </svg>
+                </div>
                 <div class="use-case-text">유행이 아닌,<br>실제로 성장 중인 키워드일까요?</div>
             </div>
             <div class="use-case-item">
-                <div class="use-case-icon">🎯</div>
+                <div class="use-case-icon">
+                    <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="36" cy="36" r="32" fill="#FFEBEE"/>
+                        <circle cx="36" cy="36" r="22" stroke="#EF9A9A" stroke-width="3.5" fill="none"/>
+                        <circle cx="36" cy="36" r="14" stroke="#E57373" stroke-width="3.5" fill="none"/>
+                        <circle cx="36" cy="36" r="7" fill="#EF5350"/>
+                        <circle cx="36" cy="36" r="2.5" fill="#FFF"/>
+                        <path d="M50 22l7-7M57 15v7M57 15h-7" stroke="#E53935" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
                 <div class="use-case-text">여러 후보 중<br>어떤 주제를 우선해야 할까요?</div>
             </div>
         </div>
@@ -1572,7 +1609,14 @@ def page_home():
         st.markdown('''
         <div class="home-nav-card">
             <div>
-                <div class="home-card-icon">📊</div>
+                <div class="home-card-icon">
+                    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="56" height="56" rx="12" fill="#F3F4F6"/>
+                        <rect x="12" y="30" width="8" height="14" rx="2" fill="#9CA3AF"/>
+                        <rect x="24" y="22" width="8" height="22" rx="2" fill="#6B7280"/>
+                        <rect x="36" y="14" width="8" height="30" rx="2" fill="#374151"/>
+                    </svg>
+                </div>
                 <div class="home-card-title">트렌드 대시보드</div>
                 <div class="home-card-desc">실시간 급상승 키워드와<br>핵심 성장 지표 확인</div>
             </div>
@@ -1585,7 +1629,16 @@ def page_home():
         st.markdown('''
         <div class="home-nav-card">
             <div>
-                <div class="home-card-icon">⚖️</div>
+                <div class="home-card-icon">
+                    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="56" height="56" rx="12" fill="#F3F4F6"/>
+                        <path d="M28 12v6" stroke="#374151" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="28" cy="22" r="4" fill="#374151"/>
+                        <path d="M14 38h12M30 38h12" stroke="#6B7280" stroke-width="3" stroke-linecap="round"/>
+                        <rect x="10" y="32" width="8" height="12" rx="2" fill="#9CA3AF"/>
+                        <rect x="38" y="28" width="8" height="16" rx="2" fill="#6B7280"/>
+                    </svg>
+                </div>
                 <div class="home-card-title">키워드 비교 분석</div>
                 <div class="home-card-desc">최대 5개 키워드 간<br>관심도 추이 교차 비교</div>
             </div>
@@ -1598,7 +1651,16 @@ def page_home():
         st.markdown('''
         <div class="home-nav-card">
             <div>
-                <div class="home-card-icon">📋</div>
+                <div class="home-card-icon">
+                    <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="56" height="56" rx="12" fill="#F3F4F6"/>
+                        <rect x="14" y="10" width="28" height="36" rx="3" fill="#E5E7EB" stroke="#9CA3AF" stroke-width="2"/>
+                        <rect x="20" y="18" width="16" height="3" rx="1.5" fill="#6B7280"/>
+                        <rect x="20" y="25" width="12" height="2" rx="1" fill="#9CA3AF"/>
+                        <rect x="20" y="31" width="14" height="2" rx="1" fill="#9CA3AF"/>
+                        <rect x="20" y="37" width="10" height="2" rx="1" fill="#9CA3AF"/>
+                    </svg>
+                </div>
                 <div class="home-card-title">인사이트 리포트</div>
                 <div class="home-card-desc">심층 분석 결과와<br>신규 기획 추천</div>
             </div>
